@@ -50,7 +50,7 @@ Game.registerMod("Magic Regen Tweak", {
 
 			Game.registerHook('draw', MOD.updateGrimoireTime);
 			Game.removeHook('check', this);
-			Game.Notify(`Magic Regen Tweak loaded.`,`Arrived precisely on time!`,[0,0,MOD.dir+'/icon.png']);
+			Game.Notify(`Magic Regen Tweak loaded.`,`Arrived precisely on time!`,[0,0,"https://flethan.github.io/Magic_Regen_Tweak/icon.png]);
 		}
 		Game.registerHook('check', replaceGrimoire);
 	},
