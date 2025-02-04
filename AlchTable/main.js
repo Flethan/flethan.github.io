@@ -1,4 +1,3 @@
-// @ts-nocheck
 function simpleEffectChain(property, effs, quality) {
 	effs[property] = (effs[property] ?? 1) * (1 + this.max * quality);
 };
@@ -9,7 +8,7 @@ const emptySaveData = {
 	cookieParts: [[], [], []],
 
 	deconstructing: false,
-	// inputValue: 0,
+	inputValue: 100,
 	selectedIngredients: [0, 0],
 	selectedParts: [0, 0, 0],
 	effectsOn: false,
@@ -128,6 +127,13 @@ Game.registerMod("Alchemists Table Minigame", {
 		AlchTable.saveData = emptySaveData;
 		AlchTable.ccps = 0;
 		AlchTable.suckedPs = 0;
+		AlchTable.suckRate = 0.1;
+		AlchTable.ingredentMins = [0, 100, 316, 1000, 3160, 10000];
+
+		AlchTable.getIngredentMins = function () {
+			const ingredentMins = [0, 100, 316, 1000, 3160, 10000];
+			AlchTable.ingredentMins.map(v => v / (AlchTable.effs.ingredentDivisor || 1));
+		};
 
 		AlchTable.calculateEffs = function () {
 
@@ -148,233 +154,176 @@ Game.registerMod("Alchemists Table Minigame", {
 			//}
 
 			// AlchTable.effectTotals = metaEffs;
-			AlchTable.flatEffs.suckRate = 0.1;
+			AlchTable.flatEffs.suckRate = AlchTable.saveData.deconstructing ? 0.1 : 0;
+
+			AlchTable.getIngredentMins();
 			Game.recalculateGains = 1;
 		};
 
-		AlchTable.getIngredentMins = function () {
-			const ingredentMins = [0, 100, 360, 1000, 3600, 10000];
-			return ingredentMins.map(v => v / (AlchTable.effs.ingredentDivisor || 1));
-		};
-
 		AlchTable.update = {
-			blackButton: function () {
+			black: function () {
 				const button = l('alchtableBlackButton');
-				if (!button) return false;
+				if (button) button.className = `smallFancyButton${AlchTable.saveData.deconstructing ? ' on' : ''}`;
 
-				button.className = `smallFancyButton${AlchTable.saveData.deconstructing ? ' on' : ''}`;
-			},
-
-			blackStatus: function () {
 				const status = l('alchtableBlackStatus');
-				if (!status) return false;
+				if (status) {
+					let str = /*html*/`
+						<p>
+							${AlchTable.saveData.deconstructing ? 'Deconstructing' : 'Deconstruct'}<br>
+							<span style="font-size:10pt;font-weight:bold"><span style="font-size:11pt;color:red">${Beautify(AlchTable.suckedPs, 1)}</span><br>(${Beautify(AlchTable.suckRate*100, 0)}%) raw cookies/second</span><br><br>
+							${AlchTable.saveData.deconstructing ? 'Gaining' : 'To gain'}<br>
+							<span style="font-size:10pt;font-weight:bold"><span style="font-size:11pt;color:green">${Beautify(AlchTable.ccps, 1)}</span><br>cookie crumbs/second</span>
+						</p>
+					`;
 
-				let str = /*html*/`
-					<p>
-						${AlchTable.saveData.deconstructing ? 'Deconstructing' : 'Deconstruct'}<br>
-						<span style="font-size:10pt;font-weight:bold"><span style="font-size:11pt;color:red">${Beautify(AlchTable.suckedPs, 1)}</span><br>(${Beautify(AlchTable.flatEffs.suckRate*100, 0)}%) raw cookies/second</span><br><br>
-						${AlchTable.saveData.deconstructing ? 'Gaining' : 'To gain'}<br>
-						<span style="font-size:10pt;font-weight:bold"><span style="font-size:11pt;color:green">${Beautify(AlchTable.ccps, 1)}</span><br>cookie crumbs/second</span>
-					</p>
-				`;
-
-				status.className = AlchTable.saveData.deconstructing ? 'on' : '';
-				status.innerHTML = str;
+					status.className = AlchTable.saveData.deconstructing ? 'on' : '';
+					status.innerHTML = str;
+				}
 			},
 
 			whiteNumber: function () {
 				const number = l('alchtableWhiteNumber');
-				if (!number) return false;
-
-				let str = /*html*/`
-					<p>
-						<span style="font-size:14pt;font-weight:bold">${AlchTable.saveData.cookieCrumbs.toFixed(1)}</span><br>
-						cookie crumbs
-					</p>
-				`;
-
-				number.innerHTML = str;
-			},
-
-			whiteSliderBox: function () {
-				const sliderBox = l('alchtableWhiteSliderBox');
-				if (!sliderBox) return false;
-
-				const i = Math.trunc(AlchTable.saveData.cookieCrumbs) || 1;
-				sliderBox.className = `sliderBox${i >= 100 ? ' on' : ''}`;
-			},
-
-			whiteInput: function (crumbs = 0) {
-				const input = l('alchtableWhiteSliderInput');
-				if (!input) return false;
-
-				const i = Math.trunc(AlchTable.saveData.cookieCrumbs) || 1;
-
-				if (i < 100) {
-					input.setAttribute("readonly", "readonly");
-					input.min, input.max, input.value = 0;
-				} else {
-					input.value = Math.max(crumbs, 100);
-					input.min = 100;
-					input.max = i;
-					input.removeAttribute("readonly");
+				if (number) {
+					let str = /*html*/`
+						<p>
+							<span style="font-size:14pt;font-weight:bold">${Beautify(AlchTable.saveData.cookieCrumbs, 1)}</span><br>
+							cookie crumbs
+						</p>
+					`;
+					number.innerHTML = str;
 				}
 			},
 
-			whiteSlider: function (percent = 0) {
+			whiteInput: function () {
+				AlchTable.saveData.inputValue = Math.trunc(Math.max(Math.min(AlchTable.saveData.inputValue, AlchTable.saveData.cookieCrumbs, 100000), 100));
+				const enoughCrumbs = AlchTable.saveData.cookieCrumbs >= 100;
+
+				const sliderBox = l('alchtableWhiteSliderBox');
+				if (sliderBox) sliderBox.className = `sliderBox${enoughCrumbs ? ' on' : ''}`;
+
+				const input = l('alchtableWhiteSliderInput');
+				if (input) {
+					if (enoughCrumbs) {
+						input.removeAttribute("readonly");
+						input.value = AlchTable.saveData.inputValue;
+					} else {
+						input.setAttribute("readonly", true);
+						input.value = 100;
+					}
+				};
+
 				const slider = l('alchtableWhiteSlider');
 				const sliderText = l('alchtableWhiteSliderRightText');
-				if (!slider || !sliderText) return false;
+				if (slider && sliderText) {
+					slider.value = Math.min(Math.max(((Math.log10(AlchTable.saveData.inputValue) - 2) / 3), 0), 1);
+					//slider.style = `
+					//	clear: both;
+					//	--alchtableWhiteSlider-background: linear-gradient(90deg, #d66 ${(100 / i) * 100}%, #999 ${(0.01 + (100 / i)) * 100}%);
+					//	--alchtableWhiteSlider-thumb: ${(i * percent) < 100 ? '#fbb' : '#ccc'};
+					//`;
+					sliderText.innerHTML = enoughCrumbs ? `${Beautify(((AlchTable.saveData.inputValue / AlchTable.saveData.cookieCrumbs) * 100), 1)}%` : "-";
+				}
 
-				const i = Math.trunc(AlchTable.saveData.cookieCrumbs) || 1;
-
-				slider.style = `
-					clear: both;
-					--alchtableWhiteSlider-background: linear-gradient(90deg, #d66 ${(100 / i) * 100}%, #999 ${(0.01 + (100 / i)) * 100}%);
-					--alchtableWhiteSlider-thumb: ${(i * percent) < 100 ? '#fbb' : '#ccc'};
-				`;
-
-				slider.value = percent;
-
-				let text = '-';
-				if (i >= 100) text = (i * percent) < 100 ? 'minimum' : (percent * 100).toFixed(1) + '%';
-				sliderText.innerHTML = text;
-			},
-
-			whiteButton: function (crumbs = 0) {
 				const button = l('alchtableWhiteButton');
-				if (!button) return false;
+				if (button) {
+					button.className = `smallFancyButton${enoughCrumbs ? ' on' : ''}`; 
+					button.innerHTML = `Sacrifice:<br>${enoughCrumbs ? AlchTable.saveData.inputValue : '-'} crumbs`;
+				}
 
-				button.className = `smallFancyButton${crumbs ? ' on' : ''}`; 
-				button.innerHTML = `Sacrifice:<br>${crumbs || '-'} crumbs`;
-			},
-
-			whiteBox: function (crumbs = 0) {
 				const box = l('alchtableWhiteBox');
-				const slider = l('alchtableWhiteSlider');
-				if (!box ||!slider) return false;
-
-				let totalPerc = [0, 0, 0, 0, 0, 0];
-				if (crumbs) {
-					let runningPerc = 1;
-					const ingredentMins = AlchTable.getIngredentMins();
-					for (let i = 5; i >= 0; i--) {
-						let failPerc = 1;
-						if (crumbs > ingredentMins[i]) failPerc = (ingredentMins[i] / crumbs)**2;
-						totalPerc[i] = runningPerc * (1-failPerc);
-						runningPerc *= failPerc;
+				if (box) {
+					const totalPerc = [0, 0, 0, 0, 0, 0];
+					if (enoughCrumbs) {
+						let runningPerc = 1;
+						for (let i = 5; i >= 0; i--) {
+							let failPerc = 1;
+							if (AlchTable.saveData.inputValue > AlchTable.ingredentMins[i]) failPerc = (AlchTable.ingredentMins[i] / AlchTable.saveData.inputValue)**2;
+							totalPerc[i] = runningPerc * (1 - failPerc);
+							runningPerc *= failPerc;
+						}
 					}
-				}
 
-				let str = '';
-				for (let i = 0; i < 6; i++) {
-					const perc = 100 * totalPerc[i];
-					str += `
-						<div class="alchtableWhiteIngredient${perc ? ' on' : ''}">
-							<div class="alchtableIngredientPercent" style="width:32px">${perc
-								? perc >= 1 ? Beautify(perc, 1) : '<1'
-								: '0'}%</div>
-							<div class="alchtableIngredientIcon" style="background-position: ${-40 * i}px 0px"></div>
-						</div>
-					`;
+					let str = '';
+					for (let i = 0; i < 6; i++) {
+						const perc = 100 * totalPerc[i];
+						str += `
+							<div class="alchtableWhiteIngredient${perc ? ' on' : ''}">
+								<div class="alchtableIngredientPercent" style="width:32px">${perc
+									? perc >= 1 ? Beautify(perc, 1) : '<1'
+									: '0'}%</div>
+								<div class="alchtableIngredientIcon" style="background-position: ${-40 * i}px 0px"></div>
+							</div>
+						`;
+					}
+					box.innerHTML = str;
 				}
-
-				box.innerHTML = str;
 			},
 
 			yellowBox: function (crumbs = 0) {
 				const box = l('alchtableYellowBox');
-				if (!box) return false;
-
-				let str = '';
-				for (let i = 0; i < 6; i++) {
-					const amount = AlchTable.saveData.ingredients[i];
-					str += `
-						<div class="alchtableWhiteIngredient${amount ? ' on' : ''}">
-							<div class="alchtableIngredientPercent" style="width:32px">${amount || ""}</div>
-							<div class="alchtableIngredientIcon" style="background-position: ${-40 * i}px 0px"></div>
-						</div>
-					`;
+				if (box) {
+					let str = '';
+					for (let i = 0; i < 6; i++) {
+						const amount = AlchTable.saveData.ingredients[i];
+						str += `
+							<div class="alchtableWhiteIngredient${amount ? ' on' : ''}">
+								<div class="alchtableIngredientPercent" style="width:32px">${amount || ""}</div>
+								<div class="alchtableIngredientIcon" style="background-position: ${-40 * i}px 0px"></div>
+							</div>
+						`;
+					}
+					box.innerHTML = str;
 				}
-
-				box.innerHTML = str;
 			}
 		};
 
 		AlchTable.callback = {
 			blackButton: function () {
 				AlchTable.saveData.deconstructing = !AlchTable.saveData.deconstructing;
-				AlchTable.calculateEffs();
 				PlaySound('snd/tick.mp3');
-				AlchTable.update.blackButton();
-				AlchTable.update.blackStatus();
-			},
-
-			whiteUpdate: function (crumbs, percent) {
-				const i = Math.trunc(AlchTable.saveData.cookieCrumbs);
-				if (!crumbs) {
-					const input = l('alchtableWhiteSliderInput');
-					if (input) crumbs = Math.trunc(Math.min(Math.max(input.value, 100), i));
-					else if (i < 100) crumbs = 0;
-					else crumbs = 100;
-				}
-				if (!percent) {
-					percent = Math.floor((crumbs / i) * 1000) / 1000;
-				}
-
-				AlchTable.update.whiteSliderBox();
-				AlchTable.update.whiteInput(crumbs);
-				AlchTable.update.whiteSlider(percent);
-				AlchTable.update.whiteButton(crumbs);
-				AlchTable.update.whiteBox(crumbs);
+				AlchTable.calculateEffs();
+				AlchTable.update.black();
 			},
 
 			whiteInput: function () {
 				const input = l('alchtableWhiteSliderInput');
 				if (!input) return false;
 
-				const i = Math.trunc(AlchTable.saveData.cookieCrumbs);
-				let crumbs = Math.trunc(Math.min(Math.max(input.value, 100), i));
-				if (crumbs < 100) crumbs = 0;
+				AlchTable.saveData.inputValue = Math.trunc(Math.max(Math.min(input.value, AlchTable.saveData.cookieCrumbs, 100000), 100));
 
-				AlchTable.callback.whiteUpdate(crumbs);
+				AlchTable.update.whiteInput();
 			},
 
 			whiteSlider: function () {
 				const slider = l('alchtableWhiteSlider');
 				if (!slider) return false;
 
-				const i = Math.trunc(AlchTable.saveData.cookieCrumbs);
-				let percent = Math.min(Math.max(slider.value, 0), 1);
+				const inputValue = Math.trunc(100 * (1000**slider.value));
+				AlchTable.saveData.inputValue = Math.trunc(Math.max(Math.min(inputValue, AlchTable.saveData.cookieCrumbs, 100000), 100));
 
-				let crumbs = Math.trunc(i * percent);
-				if (crumbs < 100 && i >= 100) crumbs = 100;
-				if (crumbs < 100) crumbs = 0;
-
-				AlchTable.callback.whiteUpdate(crumbs);
+				AlchTable.update.whiteInput();
 			},
 
 			whiteButton: function () {
-				const input = l('alchtableWhiteSliderInput');
-				const i = Math.trunc(AlchTable.saveData.cookieCrumbs);
-				if (!input || i < 100) return false;
+				const cookieCrumbs = Math.trunc(AlchTable.saveData.cookieCrumbs);
+				if (cookieCrumbs < 100) return false;
 				PlaySound('snd/tick.mp3');
 
-				let value = input.value;
-				const crumbsSacrificed = Math.trunc(Math.max(Math.min(value, i), 100));
+				const crumbsSacrificed = Math.trunc(Math.max(Math.min(AlchTable.saveData.inputValue, cookieCrumbs, 100000), 100));
 				AlchTable.saveData.cookieCrumbs -= crumbsSacrificed;
-				value = Math.trunc(Math.min(AlchTable.saveData.cookieCrumbs, value));
-				AlchTable.callback.whiteUpdate(value);
 
-				Math.seedrandom(Game.seed + '/' + AlchTable.ingredientsMade);
-				AlchTable.ingredientsMade++;
-				const effectiveCrumbs = crumbsSacrificed * Math.random();
+				Math.seedrandom(Game.seed + '/' + AlchTable.saveData.ingredientsMade);
+				AlchTable.saveData.ingredientsMade++;
+				const effectiveCrumbs = crumbsSacrificed * Math.sqrt(Math.random());
 				for (let i = 5; i >= 0; i--) {
-					if (effectiveCrumbs < AlchTable.getIngredentMins()[i]) continue;
+					if (effectiveCrumbs < AlchTable.ingredentMins[i]) continue;
 					AlchTable.saveData.ingredients[i]++;
 					break;
 				}
 				
+				AlchTable.update.whiteNumber();
+				AlchTable.update.whiteInput();
+				AlchTable.update.yellowBox();
 			}
 		};
 
@@ -461,7 +410,6 @@ Game.registerMod("Alchemists Table Minigame", {
 					margin: 6px auto 3px;
 					flex: 0;
 					opacity: 0.5;
-					background: url("TODO");
 					background-size: 100% 100%;
 				} #alchtableWhiteSliderBox.on {
 					opacity: 1;
@@ -481,6 +429,8 @@ Game.registerMod("Alchemists Table Minigame", {
 				}
 				#alchtableWhiteSlider::-webkit-slider-runnable-track {
 					background: var(--alchtableWhiteSlider-background);
+					background: url("${dir}/lines.svg");
+					background-size: 100% 100%;
 				}
 				#alchtableWhiteSlider::-webkit-slider-thumb {
 					background: var(--alchtableWhiteSlider-thumb);
@@ -502,7 +452,6 @@ Game.registerMod("Alchemists Table Minigame", {
 					place-items: center;
 					margin: 4px auto;
 					flex: 1;
-					font-weight: bold;
 				}
 				.alchtableWhiteIngredient {
 					display: inline-flex;
@@ -513,10 +462,10 @@ Game.registerMod("Alchemists Table Minigame", {
 				.alchtableWhiteIngredient.on {
 					opacity: 1;
 				}
-
 				.alchtableIngredientPercent {
 					position: relative;
 					z-index: 1;
+					font-weight: bold;
 					text-shadow: 2px 2px 3px #000;
 				}
 				.alchtableIngredientIcon {
@@ -524,6 +473,17 @@ Game.registerMod("Alchemists Table Minigame", {
 					width: 40px;
 					height: 40px;
 					background: url("${dir}/customIcons.png");
+				}
+				#alchtableWhiteBox {
+					display: grid;
+					grid-template-columns: repeat(3, 1fr);
+					grid-template-rows: repeat(2, 1fr);
+					grid-column-gap: 6px;
+					grid-row-gap: 6px;
+					place-items: center;
+					margin: 4px auto;
+					flex: 1;
+					font-weight: bold;
 				}
 			</style>
 			<div id="alchtableBG"></div>
@@ -539,8 +499,8 @@ Game.registerMod("Alchemists Table Minigame", {
 					<div class="alchtableColumn" id="alchtableWhite">
 						<div id="alchtableWhiteNumber"></div>
 						<div class="sliderBox" id="alchtableWhiteSliderBox">
-							<input style="float:left;" class="smallFancyButton" id="alchtableWhiteSliderInput" type="number" value="0" min="0" max="0" readonly="true">
-							<div style="float:right;" class="smallFancyButton" id="alchtableWhiteSliderRightText">0%</div>
+							<input style="float:left;" class="smallFancyButton" id="alchtableWhiteSliderInput" type="number" value="100" min="100" max="100000" readonly="true">
+							<div style="float:right;" class="smallFancyButton" id="alchtableWhiteSliderRightText">-%</div>
 							<input type="range" id="alchtableWhiteSlider" class="slider" style="" min="0" max="1" step="0.001"
 								value="0"  onmouseup="PlaySound('snd/tick.mp3');">
 						</div>
@@ -578,9 +538,7 @@ Game.registerMod("Alchemists Table Minigame", {
 		};
 
 		AlchTable.draw = function () {
-			if (AlchTable.saveData.deconstructing) {
-				AlchTable.update.whiteNumber();
-			}
+			if (AlchTable.saveData.deconstructing) AlchTable.update.whiteNumber();
 		};
 
 		AlchTable.check = function() {
@@ -588,7 +546,6 @@ Game.registerMod("Alchemists Table Minigame", {
 			Object.values(AlchTable.update)
 				.filter(f => typeof f === 'function')
 				.forEach(f => f());
-			AlchTable.callback.whiteUpdate();
 		};
 		Game.registerHook('check', AlchTable.check);
 
