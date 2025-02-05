@@ -124,7 +124,22 @@ Game.registerMod("Alchemists Table Minigame", {
 			suckRate: 0,
 		};
 
-		AlchTable.saveData = emptySaveData;
+		AlchTable.saveData = {
+			cookieCrumbs: 0,
+			ingredients: [0, 0, 0, 0, 0, 0],
+			cookieParts: [[], [], []],
+		
+			deconstructing: false,
+			inputValue: 100,
+			selectedIngredients: [0, 0],
+			selectedParts: [0, 0, 0],
+			effectsOn: false,
+		
+			totalCookieCrumbs: 0,
+			totalIngredients: 0,
+			totalCookieParts: 0,
+			totalRecombs: 0,
+		};
 		AlchTable.ccps = 0;
 		AlchTable.suckedPs = 0;
 		AlchTable.suckRate = 0.1;
@@ -216,11 +231,12 @@ Game.registerMod("Alchemists Table Minigame", {
 				const sliderText = l('alchtableWhiteSliderRightText');
 				if (slider && sliderText) {
 					slider.value = Math.min(Math.max(((Math.log10(AlchTable.saveData.inputValue) - 2) / 3), 0), 1);
-					//slider.style = `
-					//	clear: both;
-					//	--alchtableWhiteSlider-background: linear-gradient(90deg, #d66 ${(100 / i) * 100}%, #999 ${(0.01 + (100 / i)) * 100}%);
-					//	--alchtableWhiteSlider-thumb: ${(i * percent) < 100 ? '#fbb' : '#ccc'};
-					//`;
+					const max = Math.min(Math.max(((Math.log10(AlchTable.saveData.cookieCrumbs) - 2) / 3), 0), 1);
+					slider.style = `
+						--alchtableWhiteSlider-background: linear-gradient(90deg, #999 ${max * 100}%, #d66 ${0.001 + max * 100}%);
+						--alchtableWhiteSlider-thumb: ${enoughCrumbs ? '#ccc' : '#fbb'};
+						clear: both;
+					`;
 					sliderText.innerHTML = enoughCrumbs ? `${Beautify(((AlchTable.saveData.inputValue / AlchTable.saveData.cookieCrumbs) * 100), 1)}%` : "-";
 				}
 
@@ -428,11 +444,17 @@ Game.registerMod("Alchemists Table Minigame", {
 					clear: both;
 				}
 				#alchtableWhiteSlider::-webkit-slider-runnable-track {
-					background: var(--alchtableWhiteSlider-background);
-					background: url("${dir}/lines.svg");
-					background-size: 100% 100%;
+					background: url("${dir}/lines.svg"), var(--alchtableWhiteSlider-background);
+					background-size: 100% 100%
+				}
+				#alchtableWhiteSlider::-moz-range-track {
+					background: url("${dir}/lines.svg"), var(--alchtableWhiteSlider-background);
+					background-size: 100% 100%
 				}
 				#alchtableWhiteSlider::-webkit-slider-thumb {
+					background: var(--alchtableWhiteSlider-thumb);
+				}
+				#alchtableWhiteSlider::-moz-range-thumb {
 					background: var(--alchtableWhiteSlider-thumb);
 				}
 				#alchtableWhiteButton {
@@ -550,7 +572,22 @@ Game.registerMod("Alchemists Table Minigame", {
 		Game.registerHook('check', AlchTable.check);
 
 		AlchTable.reset = function (hard) {
-			if (hard) AlchTable.saveData = emptySaveData;
+			if (hard) AlchTable.saveData = {
+				cookieCrumbs: 0,
+				ingredients: [0, 0, 0, 0, 0, 0],
+				cookieParts: [[], [], []],
+			
+				deconstructing: false,
+				inputValue: 100,
+				selectedIngredients: [0, 0],
+				selectedParts: [0, 0, 0],
+				effectsOn: false,
+			
+				totalCookieCrumbs: 0,
+				totalIngredients: 0,
+				totalCookieParts: 0,
+				totalRecombs: 0,
+			};
 
 			AlchTable.check();
 		};
