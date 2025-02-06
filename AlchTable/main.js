@@ -2,22 +2,31 @@ function simpleEffectChain(property, effs, quality) {
 	effs[property] = (effs[property] ?? 1) * (1 + this.max * quality);
 };
 
-const emptySaveData = {
-	cookieCrumbs: 0,
-	ingredients: [0, 0, 0, 0, 0, 0],
-	cookieParts: [[], [], []],
-
-	deconstructing: false,
-	inputValue: 100,
-	selectedIngredients: [0, 0],
-	selectedParts: [0, 0, 0],
-	effectsOn: false,
-
-	totalCookieCrumbs: 0,
-	totalIngredients: 0,
-	totalCookieParts: 0,
-	totalRecombs: 0,
-};
+//const emptySaveData = {
+//	cookieCrumbs: 0,
+//	ingredients: [0, 0, 0, 0, 0, 0],
+//	cookieParts: [[], [], []],
+//
+//	deconstructing: false,
+//	inputValue: 100,
+//	selectedIngredients: [0, 0],
+//	selectedParts: [0, 0, 0],
+//	effectsOn: false,
+//
+//	totalCookieCrumbs: 0,
+//	totalIngredients: 0,
+//	totalCookieParts: 0,
+//	totalRecombs: 0,
+//};
+//cookiepart= {
+//	base: '',
+//	q: 0,
+//	affixes: [{
+//		t: '',
+//		#: 0,
+//		q: 0
+//	}]
+//}
 
 Game.registerMod("Alchemists Table Minigame", {
 	init: function(){
@@ -190,7 +199,9 @@ Game.registerMod("Alchemists Table Minigame", {
 
 		AlchTable.cookieParts = { // Units| 0: #, 1: %, 2: min + sec, 3: # times, 4: ceil(#), 5: ‱
 			plainCookie: {
+				id: 'plainCookie',
 				type: 0,
+				icon: '0px -40px',
 				combo: ['flour', 'flour'],
 				name: 'Plain Cookie',
 				effsStr: 'Cookie production multiplier +@.',
@@ -199,7 +210,9 @@ Game.registerMod("Alchemists Table Minigame", {
 				unit: 1
 			},
 			milkBread: {
+				id: 'milkBread',
 				type: 0,
+				icon: '-40px -40px',
 				combo: ['milk', 'flour'],
 				name: 'Milk Bread',
 				effsStr: 'Clicking is @ more powerful.',
@@ -207,17 +220,10 @@ Game.registerMod("Alchemists Table Minigame", {
 				max: 0.5,
 				unit: 1
 			},
-			wholeMilk: {
-				type: 1,
-				combo: ['milk', 'milk'],
-				name: 'Whole Milk',
-				effsStr: 'Kittens are @ more effective.',
-				effect: 'milk',
-				max: 0.05,
-				unit: 1
-			},
 			butterCookie: {
+				id: 'butterCookie',
 				type: 0,
+				icon: '-80px -40px',
 				combo: ['butter', 'flour'],
 				name: 'Butter Cookie',
 				effsStr: '+@ golden cookie gains.',
@@ -225,26 +231,10 @@ Game.registerMod("Alchemists Table Minigame", {
 				max: 0.15,
 				unit: 1
 			},
-			whippingCream: {
-				type: 1,
-				combo: ['butter', 'milk'],
-				name: 'Whipping Cream',
-				effsStr: '+@ golden cookie frequency.',
-				effect: 'goldenCookieFreq',
-				max: 0.15,
-				unit: 1
-			},
-			butter: {
-				type: 1,
-				combo: ['butter', 'butter'],
-				name: 'Butter',
-				effsStr: '+@ golden cookie effect duration.',
-				effect: 'goldenCookieEffDur',
-				max: 0.15,
-				unit: 1
-			},
 			chocolateCookie: {
+				id: 'chocolateCookie',
 				type: 0,
+				icon: '-120px -40px',
 				combo: ['chocolate', 'flour'],
 				name: 'Chocolate Cookie',
 				effsStr: 'Switching seasons is @ cheaper.',
@@ -252,35 +242,10 @@ Game.registerMod("Alchemists Table Minigame", {
 				max: 0.5,
 				unit: 1
 			},
-			fudge: {
-				type: 0,
-				combo: ['chocolate', 'milk'],
-				name: 'Fudge',
-				effsStr: 'Seasonal upgrades are @ cheaper.',
-				// TODO
-				max: 0.75,
-				unit: 1
-			},
-			whiteChocolateChunks: {
-				type: 2,
-				combo: ['chocolate', 'butter'],
-				name: 'White Chocolate Chunks',
-				effsStr: 'With no buffs and no golden cookies on screen, switching seasons has a @ chance to summon one.',
-				effect: 'seasonSwitchGoldenCookie',
-				max: -0.1,
-				unit: 1
-			},
-			darkChocolateChips: {
-				type: 2,
-				combo: ['chocolate', 'chocolate'],
-				name: 'Dark Chocolate Chips',
-				effsStr: 'Chocolate sub-effects have +@ quality.',
-				qualityEffect: 'chocolate',
-				max: 0.25,
-				unit: 1
-			},
 			oatmeal: {
+				id: 'oatmeal',
 				type: 2,
+				icon: '-160px -40px',
 				combo: ['nuts', 'flour'],
 				name: 'Oatmeal',
 				effsStr: '+@ increased CpS per empty worship slot.',
@@ -291,43 +256,10 @@ Game.registerMod("Alchemists Table Minigame", {
 				max: 0.1,
 				unit: 1
 			},
-			almondMilk: {
-				type: 1,
-				combo: ['nuts', 'milk'],
-				name: 'Almond Milk',
-				effsStr: '@ of upgrades also count towards milk.',
-				effect(effs, quality) { effs.milk = (effs.milk ?? 1) + (this.max * quality * Game.UpgradesOwned / Game.AchievementsOwned) }, // TODO
-				max: 0.05,
-				unit: 1
-			},
-			peanutButterCookie: {
-				type: 0,
-				combo: ['nuts', 'butter'],
-				name: 'Peanut Butter Cookie',
-				effsStr: 'Sub-effects on other cookie parts have +@ quality.',
-				qualityEffect: 'all',
-				max: 0.33,
-				unit: 1
-			},
-			chocolateAlmondPaste: {
-				type: 2,
-				combo: ['nuts', 'chocolate'],
-				name: 'Chocolate Almond Paste',
-				effsStr: 'Planting seeds is @ cheaper during any season.',
-				effect(effs, quality) { effs.seedCost = (effs.seedCost ?? 1) * (1 - this.max * quality * Game.baseSeason !== '' ? 1 : 0) },
-				max: 0.25,
-				unit: 1
-			},
-			assortedNuts: {
-				type: 2,
-				combo: ['nuts', 'nuts'],
-				name: 'Assorted Nuts',
-				effsStr: 'Effects of newly created cookie parts gain +@% to their quality when rolled, up to 150%.',
-				max: 0.1,
-				unit: 1
-			},
 			sugarCookie: {
+				id: 'sugarCookie',
 				type: 0,
+				icon: '-160px -40px',
 				combo: ['sugar', 'flour'],
 				name: 'Sugar Cookie',
 				effsStr: 'Sugar frenzy has a @ chance to not consume a sugar lump.',
@@ -335,8 +267,54 @@ Game.registerMod("Alchemists Table Minigame", {
 				max: -0.5,
 				unit: 1
 			},
-			iceCream: {
+			wholeMilk: {
+				id: 'wholeMilk',
 				type: 1,
+				icon: '-40px -80px',
+				combo: ['milk', 'milk'],
+				name: 'Whole Milk',
+				effsStr: 'Kittens are @ more effective.',
+				effect: 'milk',
+				max: 0.05,
+				unit: 1
+			},
+			whippingCream: {
+				id: 'whippingCream',
+				type: 1,
+				icon: '-80px -80px',
+				combo: ['butter', 'milk'],
+				name: 'Whipping Cream',
+				effsStr: '+@ golden cookie frequency.',
+				effect: 'goldenCookieFreq',
+				max: 0.15,
+				unit: 1
+			},
+			fudge: {
+				id: 'fudge',
+				type: 0,
+				icon: '-120px -80px',
+				combo: ['chocolate', 'milk'],
+				name: 'Fudge',
+				effsStr: 'Seasonal upgrades are @ cheaper.',
+				// TODO
+				max: 0.75,
+				unit: 1
+			},
+			almondMilk: {
+				id: 'almondMilk',
+				type: 1,
+				icon: '-160px -80px',
+				combo: ['nuts', 'milk'],
+				name: 'Almond Milk',
+				effsStr: '@ of upgrades also count towards milk.',
+				effect(effs, quality) { effs.milk = (effs.milk ?? 1) + (this.max * quality * Game.UpgradesOwned / Game.AchievementsOwned) }, // TODO
+				max: 0.05,
+				unit: 1
+			},
+			iceCream: {
+				id: 'iceCream',
+				type: 1,
+				icon: '-200px -80px',
 				combo: ['sugar', 'milk'],
 				name: 'Ice Cream',
 				effsStr: 'Harvesting a sugar lump triggers a buff for one minute, granting +@ CpS per total sugar lumps harvested.',
@@ -344,8 +322,43 @@ Game.registerMod("Alchemists Table Minigame", {
 				max: 0.01,
 				unit: 1
 			},
-			frosting: {
+			butter: {
+				id: 'butter',
 				type: 1,
+				icon: '-80px -120px',
+				combo: ['butter', 'butter'],
+				name: 'Butter',
+				effsStr: '+@ golden cookie effect duration.',
+				effect: 'goldenCookieEffDur',
+				max: 0.15,
+				unit: 1
+			},
+			whiteChocolateChunks: {
+				id: 'whiteChocolateChunks',
+				type: 2,
+				icon: '-120px -120px',
+				combo: ['chocolate', 'butter'],
+				name: 'White Chocolate Chunks',
+				effsStr: 'With no buffs and no golden cookies on screen, switching seasons has a @ chance to summon one.',
+				effect: 'seasonSwitchGoldenCookie',
+				max: -0.1,
+				unit: 1
+			},
+			peanutButterCookie: {
+				id: 'peanutButterCookie',
+				type: 0,
+				icon: '-160px -120px',
+				combo: ['nuts', 'butter'],
+				name: 'Peanut Butter Cookie',
+				effsStr: 'Sub-effects on other cookie parts have +@ quality.',
+				qualityEffect: 'all',
+				max: 0.33,
+				unit: 1
+			},
+			frosting: {
+				id: 'frosting',
+				type: 1,
+				icon: '-200px -120px',
 				combo: ['sugar', 'butter'],
 				name: 'Frosting',
 				effsStr: 'Golden Cookies are @ more likely to be sweet.',
@@ -353,16 +366,52 @@ Game.registerMod("Alchemists Table Minigame", {
 				max: 10,
 				unit: 1
 			},
-			chocolateChips: {
+			darkChocolateChips: {
+				id: 'darkChocolateChips',
 				type: 2,
+				icon: '-120px -160px',
+				combo: ['chocolate', 'chocolate'],
+				name: 'Dark Chocolate Chips',
+				effsStr: 'Chocolate sub-effects have +@ quality.',
+				qualityEffect: 'chocolate',
+				max: 0.25,
+				unit: 1
+			},
+			chocolateAlmondPaste: {
+				id: 'chocolateAlmondPaste',
+				type: 2,
+				icon: '-160px -160px',
+				combo: ['nuts', 'chocolate'],
+				name: 'Chocolate Almond Paste',
+				effsStr: 'Planting seeds is @ cheaper during any season.',
+				effect(effs, quality) { effs.seedCost = (effs.seedCost ?? 1) * (1 - this.max * quality * Game.baseSeason !== '' ? 1 : 0) },
+				max: 0.25,
+				unit: 1
+			},
+			chocolateChips: {
+				id: 'chocolateChips',
+				type: 2,
+				icon: '-200px -160px',
 				combo: ['sugar', 'chocolate'],
 				name: 'Chocolate Chips',
 				effsStr: 'Sugar lumps ripen @ faster during any season.',
 				max: 60,
 				unit: 2
 			},
+			assortedNuts: {
+				id: 'assortedNuts',
+				type: 2,
+				icon: '-160px -200px',
+				combo: ['nuts', 'nuts'],
+				name: 'Assorted Nuts',
+				effsStr: 'Effects of newly created cookie parts gain +@% to their quality when rolled, up to 150%.',
+				max: 0.1,
+				unit: 1
+			},
 			candiedNuts: {
+				id: 'candiedNuts',
 				type: 1,
+				icon: '-200px -200px',
 				combo: ['sugar', 'nuts'],
 				name: 'Candied Nuts',
 				effsStr: 'Building levels are @ more effective towards building CpS.',
@@ -370,7 +419,9 @@ Game.registerMod("Alchemists Table Minigame", {
 				unit: 1
 			},
 			sprinkles: {
+				id: 'sprinkles',
 				type: 2,
+				icon: '-200px -240px',
 				combo: ['sugar', 'sugar'],
 				name: 'Sprinkles',
 				effsStr: 'Sugar lumps mature @ faster.',
@@ -380,329 +431,414 @@ Game.registerMod("Alchemists Table Minigame", {
 		};
 
 		AlchTable.cookieEffects = {
-			'flour': {
-				0: {
+			flour: [
+				{
 					effsStr: 'Upgrades are @ cheaper.',
 					max: 0.02,
 					unit: 1,
 					weight: 25
 				},
-				1: {
+				{
 					effsStr: 'Buildings are @ cheaper.',
 					max: 0.02,
 					unit: 1,
 					weight: 25
 				},
-				2: {
+				{
 					effsStr: 'Random drops are @ less rare.',
 					max: 0.15,
 					unit: 1,
 					weight: 15
 				},
-				3: {
+				{
 					effsStr: '+@ Grandma CpS.',
 					max: 0.33,
 					unit: 1,
 					weight: 15
 				},
-				4: {
+				{
 					effsStr: 'Multiplies the gain from Thousand fingers by @.',
 					max: 10,
 					unit: 0,
 					weight: 10
 				},
-				5: {
+				{
 					effsStr: '+5% CpS, @.',
 					max: 5,
 					unit: 3,
 					weight: 5
 				},
-			},
-			'milk': {
-				0: {
+			],
+			milk: [
+				{
 					effsStr: '-@ clot duration and unlucky cookie loses.',
 					max: 0.25,
 					unit: 1,
 					weight: 25
 				},
-				1: {
-					effsStr: 'Wrinklers appear @% faster.',
+				{
+					effsStr: 'Wrinklers appear @ faster.',
 					max: 1,
 					unit: 1,
 					weight: 25
 				},
-				2: {
+				{
 					effsStr: 'Wrinklers digest @ more cookies.',
 					max: 0.05,
 					unit: 1,
 					weight: 15
 				},
-				3: {
+				{
 					effsStr: '+@ effect of prestige level on CpS per prestige upgrade unlocked.',
 					max: 0.0025,
 					unit: 1,
 					weight: 15
 				},
-				4: {
+				{
 					effsStr: '+@ CpS if your cookies baked this ascension is less than your cookies forfeited by ascending.',
 					max: 1,
 					unit: 1,
 					weight: 10
 				},
-				5: {
+				{
 					effsStr: 'Wrath cookies have a @ chance to be golden.',
 					max: 0.1,
 					unit: 1,
 					weight: 5
 				},
-			},
-			'butter': {
-				0: {
+			],
+			butter: [
+				{
 					effsStr: 'Golden switch and shimmering veil are @ cheaper during a Clicking Frenzy.',
 					max: 0.2,
 					unit: 1,
 					weight: 25
 				},
-				1: {
+				{
 					effsStr: 'Clicking a Lucky golden cookie reduces the time to the next golden cookie by @.',
 					max: 0.2,
 					unit: 1,
 					weight: 25
 				},
-				2: {
+				{
 					effsStr: '+@ Frenzy golden cookie duration.',
 					max: 0.15,
 					unit: 1,
 					weight: 15
 				},
-				3: {
+				{
 					effsStr: '+@ random drops during a Cookie Storm.',
 					max: 1,
 					unit: 1,
 					weight: 15
 				},
-				4: {
+				{
 					effsStr: 'Building specials are @ more effective.',
 					max: 0.1,
 					unit: 1,
 					weight: 10
 				},
-				5: {
+				{
 					effsStr: 'Cookie chains have a @ chance to continue when they would otherwise end.',
 					max: 0.01,
 					unit: 1,
 					weight: 5
 				},
-			},
-			'chocolate': {
-				0: {
+			],
+			chocolate: [
+				{
 					effsStr: 'Switched seasons last @ longer.',
 					max: 1,
 					unit: 1,
 					weight: 25
 				},
-				1: {
+				{
 					effsStr: '+@ reindeer gains.',
 					max: 0.25,
 					unit: 1,
 					weight: 25
 				},
-				2: {
+				{
 					effsStr: 'Eggs appear @ more frequently for each seasonal cookie you own.',
 					max: 0.05,
 					unit: 1,
 					weight: 15
 				},
-				3: {
+				{
 					effsStr: 'Your seasonal cookies are @ more effective for each egg you own. ',
 					max: 0.02,
 					unit: 1,
 					weight: 15
 				},
-				4: {
+				{
 					effsStr: '+@ business.',
 					max: 0.2,
 					unit: 1,
 					weight: 10
 				},
-				5: {
+				{
 					effsStr: '+@ CpS per seasonal upgrade when there is no season.',
 					max: 0.01,
 					unit: 1,
 					weight: 5
 				},
-			},
-			'nuts': {
-				0: {
+			],
+			nuts: [
+				{
 					effsStr: 'Garden plants age @ faster.',
 					max: 0.05,
 					unit: 1,
 					weight: 25
 				},
-				1: {
+				{
 					effsStr: 'Garden plants mutate @ more.',
 					max: 0.05,
 					unit: 1,
 					weight: 25
 				},
-				2: {
+				{
 					effsStr: '+@ warehouse space for all goods.',
 					max: 100,
 					unit: 4,
 					weight: 15
 				},
-				3: {
+				{
 					effsStr: '-@ minutes between worship swaps. ',
 					max: 10,
 					unit: 2,
 					weight: 15
 				},
-				4: {
+				{
 					effsStr: 'Your magic refills @ faster.',
 					max: 0.04,
 					unit: 1,
 					weight: 10
 				},
-				5: {
+				{
 					effsStr: '+1% cookies deconstructed for +@ cookie crumbs.',
 					max: 0.1,
 					unit: 1,
 					weight: 5
 				},
-			},
-			'sugar': {
-				0: {
+			],
+			sugar: [
+				{
 					effsStr: 'Harvesting a sugar lump has a @ chance to give an extra sugar lump.',
 					max: 0.005,
 					unit: 1,
 					weight: 25
 				},
-				1: {
+				{
 					effsStr: 'Clicking the cookie has a @ chance to give a sugar lump.',
 					max: 0.00001,
 					unit: 5,
 					weight: 25
 				},
-				2: {
+				{
 					effsStr: 'Exploding a wrinkler has a @ chance to give a sugar lump.',
 					max: 0.0001,
 					unit: 5,
 					weight: 15
 				},
-				3: {
+				{
 					effsStr: 'Sugar lumps are @ more likely to be unusual.',
 					max: 0.25,
 					unit: 1,
 					weight: 15
 				},
-				4: {
+				{
 					effsStr: 'Each unspent sugar lump gives +@ CpS.',
 					max: 0.0025,
-					unit: 1,
+					unit: 5,
 					weight: 10
 				},
-				5: {
+				{
 					effsStr: '@ of your total building level contributes to CpS.',
 					max: 0.5,
 					unit: 1,
 					weight: 5
 				},
-			},
-			'aura': [
+			],
+			aura: [
 				{
 					effsStr: 'Switching dragon auras is free.',
-					aura: 'No aura'
+					aura: 'No aura',
+					weight: 5,
 				},
 				{
 					effsStr: '+1 cat amenity.',
-					aura: 'Breath of Milk'
+					aura: 'Breath of Milk',
+					weight: 5,
 				},
 				{
 					effsStr: 'Clicking reduces the cooldown of swapping cookie parts by 20 seconds.',
-					aura: 'Dragon Cursor'
+					aura: 'Dragon Cursor',
+					weight: 5,
 				},
 				{
 					effsStr: 'Research is 100 times as fast.',
-					aura: 'Elder Battalion'
+					aura: 'Elder Battalion',
+					weight: 5,
 				},
 				{
 					effsStr: '+60% chance of collecting seeds automatically when plants expire.',
-					aura: 'Reaper of Fields'
+					aura: 'Reaper of Fields',
+					weight: 5,
 				},
 				{
 					effsStr: '+300% mine CpS.',
-					aura: 'Earth Shatterer'
+					aura: 'Earth Shatterer',
+					weight: 5,
 				},
 				{
 					effsStr: 'Constructing an ingredient has a 10% chance to double the product.',
-					aura: 'Master of the Armory'
+					aura: 'Master of the Armory',
+					weight: 5,
 				},
 				{
 					effsStr: '+50 brokers.',
-					aura: 'Fierce Hoarder'
+					aura: 'Fierce Hoarder',
+					weight: 5,
 				},
 				{
 					effsStr: 'Slotting a spirit has a 25% chance to not consume a worship swap.',
-					aura: 'Dragon God'
+					aura: 'Dragon God',
+					weight: 5,
 				},
 				{
 					effsStr: 'Gambler\'s Fever Dream casts with the normal chance of backfiring.',
-					aura: 'Arcane Aura'
+					aura: 'Arcane Aura',
+					weight: 5,
 				},
 				{
 					effsStr: 'Your shipments each have a small chance of delivering an ingredient each second.',
-					aura: 'Dragonflight'
+					aura: 'Dragonflight',
+					weight: 5,
 				},
 				{
 					effsStr: '+2 cookie crumbs per second.',
-					aura: 'Ancestral Metamorphosis'
+					aura: 'Ancestral Metamorphosis',
+					weight: 5,
 				},
 				{
 					effsStr: 'Harvesting a sugar lump gives you a random building you could afford for free.',
-					aura: 'Unholy Dominion'
+					aura: 'Unholy Dominion',
+					weight: 5,
 				},
 				{
 					effsStr: 'Swapping in this cookie part does not incur a cooldown.',
-					aura: 'Epoch Manipulator'
+					aura: 'Epoch Manipulator',
+					weight: 5,
 				},
 				{
 					effsStr: 'Rarer ingredients are more common.',
-					aura: 'Mind Over Matter'
+					aura: 'Mind Over Matter',
+					weight: 5,
 				},
 				{
 					effsStr: 'Your ingredients are not lost on your next ascension. Instead, this cookie part is destroyed.',
-					aura: 'Radiant Appetite'
+					aura: 'Radiant Appetite',
+					weight: 5,
 				},
 				{
 					effsStr: 'CpS <<= 1;',
-					aura: 'Dragon\'s Fortune'
+					aura: 'Dragon\'s Fortune',
+					weight: 5,
 				},
 				{
 					effsStr: 'When this cookie part is combinated, up to two other effects on this part are guarenteed to be on the result.',
-					aura: 'Dragon\'s Curve'
+					aura: 'Dragon\'s Curve',
+					weight: 5,
 				},
 				{
 					effsStr: 'When this cookie part is combinated, an aura effect is guarenteed to be on the result.',
-					aura: 'Reality Bending'
+					aura: 'Reality Bending',
+					weight: 5,
 				},
 				{
 					effsStr: 'Your shimmering veil is thrice as effective.',
-					aura: 'Dragon Orbs'
+					aura: 'Dragon Orbs',
+					weight: 5,
 				},
 				{
 					effsStr: '+1 cat.',
-					aura: 'Supreme Intellect'
+					aura: 'Supreme Intellect',
+					weight: 5,
 				},
 				{
 					effsStr: 'Exploding a wrinkler also gives cookie crumbs.',
-					aura: 'Dragon Guts'
+					aura: 'Dragon Guts',
+					weight: 5,
 				},
 			]
 		};
 
-		AlchTable.getingredientMins = function () {
+		AlchTable.getIngredientMins = function () {
 			const ingredientMins = [0, 100, 316, 1000, 3160, 10000];
 			AlchTable.ingredientMins.map(v => v / (AlchTable.effs.ingredientDivisor || 1));
+		};
+
+		AlchTable.formatEffect = function (effect, q) {
+			let number = effect.max * q;
+			// Units | 0: #, 1: %, 2: min + sec, 3: # times, 4: ceil(#), 5: ‱
+			if (effect.unit === 0) number = `${Beautify(number, 1)}`;
+			if (effect.unit === 1) number = `${Beautify(number * 100, 1)}%`;
+			if (effect.unit === 2) number = `${Beautify(Math.floor(number), 1)} minutes`;
+			if (effect.unit === 3) number = `${Beautify(number, 1)} times`;
+			if (effect.unit === 4) number = `${Beautify(Math.ceil(number), 1)}`;
+			if (effect.unit === 5) number = `${Beautify(number * 10000, 1)}‱`;
+			return [effect.effsStr.replace('@', number), `(${Beautify(q * 100, 1)}%)`];
+		};
+
+		AlchTable.cookiePartLookup = function (ingredient0, ingredient1) {
+			if (!ingredient1) ingredient1 = ingredient0;
+			for (let part in AlchTable.cookieParts) {
+				if ((AlchTable.cookieParts[part].combo[0] === ingredient0 && AlchTable.cookieParts[part].combo[1] === ingredient1) ||
+					(AlchTable.cookieParts[part].combo[0] === ingredient1 && AlchTable.cookieParts[part].combo[1] === ingredient0)
+				) return AlchTable.cookieParts[part];
+			}
+		};
+
+		AlchTable.nextCookiePart = function (partInfo) {
+			const baseId = partInfo.id;
+			const baseQuality = Math.random();
+			const affixes = [];
+
+			const affixPool = []
+			for (let i = 0; i < AlchTable.cookieEffects[partInfo.combo[0]].length; i++) {
+				affixPool.push([
+					partInfo.combo[0],
+					i,
+					AlchTable.cookieEffects[partInfo.combo[0]][i].weight,
+				]);
+			}
+			if (partInfo.combo[1] !== partInfo.combo[0]) for (let i = 0; i < AlchTable.cookieEffects[partInfo.combo[1]].length; i++) {
+				affixPool.push([
+					partInfo.combo[1],
+					i,
+					AlchTable.cookieEffects[partInfo.combo[1]][i].weight,
+				]);
+			}
+			if (Game.dragonLevel >= 5) affixPool.push(['aura', Game.dragonAura, AlchTable.cookieEffects.aura[Game.dragonAura].weight]);
+			if (Game.dragonLevel >= 27) affixPool.push(['aura', Game.dragonAura2, AlchTable.cookieEffects.aura[Game.dragonAura2].weight]);
+			const totalWeight = affixPool.reduce((a, c) => a + c[2], 0);
+			const numberOfAffixes = Math.random();
+			for (let i = 0; i < 2; i++) {
+				if (numberOfAffixes > 0.5**i) break;
+				let affix;
+				let weight = Math.random() * totalWeight;
+				for (let j = 0; j < affixPool.length; j++) {
+					if (weight <= affixPool[j][2]) {
+						affix = affixPool[j];
+						break;
+					}
+					weight -= affixPool[j][2];
+				}
+				affix[2] = Math.random();
+				affixes.push(affix)
+			}
+
+			return [baseId, baseQuality, affixes];
 		};
 
 		AlchTable.calculateEffs = function () {
@@ -726,25 +862,63 @@ Game.registerMod("Alchemists Table Minigame", {
 			// AlchTable.effectTotals = metaEffs;
 			AlchTable.flatEffs.suckRate = AlchTable.saveData.deconstructing ? 0.1 : 0;
 
-			AlchTable.getingredientMins();
+			AlchTable.getIngredientMins();
 			Game.recalculateGains = 1;
 		};
 
 		
-		AlchTable.seedTooltip = function (id) {
-			return function() {
-				//var me=M.plantsById[id];
-				//var str='<div style="padding:8px 4px;min-width:400px;" id="tooltipGardenSeed">'+
-				//	'<div class="icon" style="background:url('+Game.resPath+'img/gardenPlants.png?v='+Game.version+');float:left;margin-left:-24px;margin-top:-4px;background-position:'+(-0*48)+'px '+(-me.icon*48)+'px;"></div>'+
-				//	'<div class="icon" style="background:url('+Game.resPath+'img/gardenPlants.png?v='+Game.version+');float:left;margin-left:-24px;margin-top:-28px;background-position:'+(-4*48)+'px '+(-me.icon*48)+'px;"></div>'+
-				//	'<div style="background:url('+Game.resPath+'img/turnInto.png);width:20px;height:22px;position:absolute;left:28px;top:24px;z-index:1000;"></div>'+
-				//	(me.plantable?('<div style="float:right;text-align:right;width:100px;"><small>'+loc("Planting cost:")+'</small><br><span class="price'+(M.canPlant(me)?'':' disabled')+'">'+Beautify(Math.round(shortenNumber(M.getCost(me))))+'</span><br><small>'+loc("%1 of CpS,<br>minimum %2",[Game.sayTime(me.cost*60*30,-1),loc("%1 cookie",LBeautify(me.costM))])+'</small></div>'):'')+
-				//	'<div style="width:300px;"><div class="name">'+cap(loc("%1 seed",me.name))+'</div><div><small>'+(me.plantable?loc("Click to select this seed for planting."):'<span class="red">'+loc("This seed cannot be planted.")+'</span>')+'<br>'+loc("%1 to harvest all mature plants of this type.",loc("Shift")+'+'+loc("Ctrl")+'+'+loc("Click"))+'</small></div></div>'+
-				//	'<div class="line"></div>'+
-				//	M.getPlantDesc(me)+
-				//'</div>';
-				return "<div>foo</div";
-			};
+		AlchTable.tooltip = {
+			ingredient: function (number) {
+				return function() {
+					//var me=M.plantsById[id];
+					//var str='<div style="padding:8px 4px;min-width:400px;" id="tooltipGardenSeed">'+
+					//	'<div class="icon" style="background:url('+Game.resPath+'img/gardenPlants.png?v='+Game.version+');float:left;margin-left:-24px;margin-top:-4px;background-position:'+(-0*48)+'px '+(-me.icon*48)+'px;"></div>'+
+					//	'<div class="icon" style="background:url('+Game.resPath+'img/gardenPlants.png?v='+Game.version+');float:left;margin-left:-24px;margin-top:-28px;background-position:'+(-4*48)+'px '+(-me.icon*48)+'px;"></div>'+
+					//	'<div style="background:url('+Game.resPath+'img/turnInto.png);width:20px;height:22px;position:absolute;left:28px;top:24px;z-index:1000;"></div>'+
+					//	(me.plantable?('<div style="float:right;text-align:right;width:100px;"><small>'+loc("Planting cost:")+'</small><br><span class="price'+(M.canPlant(me)?'':' disabled')+'">'+Beautify(Math.round(shortenNumber(M.getCost(me))))+'</span><br><small>'+loc("%1 of CpS,<br>minimum %2",[Game.sayTime(me.cost*60*30,-1),loc("%1 cookie",LBeautify(me.costM))])+'</small></div>'):'')+
+					//	'<div style="width:300px;"><div class="name">'+cap(loc("%1 seed",me.name))+'</div><div><small>'+(me.plantable?loc("Click to select this seed for planting."):'<span class="red">'+loc("This seed cannot be planted.")+'</span>')+'<br>'+loc("%1 to harvest all mature plants of this type.",loc("Shift")+'+'+loc("Ctrl")+'+'+loc("Click"))+'</small></div></div>'+
+					//	'<div class="line"></div>'+
+					//	M.getPlantDesc(me)+
+					//'</div>';
+					return `<div>${AlchTable.ingredients[number].name}</div>`;
+				}
+			},
+			part: function (type, number) {
+				return function() {
+					const partData = AlchTable.saveData.cookieParts[type][number];
+					const partInfo = AlchTable.cookieParts[partData[0]];
+					let str = /*html*/`
+						<div style="width: 500px;text-align:center">
+							<div class="alchtableBoxTitle title">${partInfo.name}</div>
+							<div class="line"></div>
+							<div class="alchtableBoxTitle title">${AlchTable.formatEffect(partInfo, partData[1])[0]}
+								<span style="font-size:8pt;opacity:0.5;">${AlchTable.formatEffect(partInfo, partData[1])[1]}</span></div>
+					`;
+					if (partData[2]?.length) {
+						str += `<div class="line"></div>`
+						for (let i = 0; i < partData[2].length; i++) {
+							const subPartData = partData[2][i];
+							const subPartInfo = AlchTable.cookieEffects[subPartData[0]][subPartData[1]];
+							str += /*html*/`
+							<div class="alchtableBoxTitle title">${AlchTable.formatEffect(subPartInfo, subPartData[2])[0]}
+								<span style="font-size:8pt;opacity:0.5;">${AlchTable.formatEffect(subPartInfo, subPartData[2])[1]}</span></div>
+							`
+						}
+					}
+
+					//var me=M.plantsById[id];
+					//var str='<div style="padding:8px 4px;min-width:400px;" id="tooltipGardenSeed">'+
+					//	'<div class="icon" style="background:url('+Game.resPath+'img/gardenPlants.png?v='+Game.version+');float:left;margin-left:-24px;margin-top:-4px;background-position:'+(-0*48)+'px '+(-me.icon*48)+'px;"></div>'+
+					//	'<div class="icon" style="background:url('+Game.resPath+'img/gardenPlants.png?v='+Game.version+');float:left;margin-left:-24px;margin-top:-28px;background-position:'+(-4*48)+'px '+(-me.icon*48)+'px;"></div>'+
+					//	'<div style="background:url('+Game.resPath+'img/turnInto.png);width:20px;height:22px;position:absolute;left:28px;top:24px;z-index:1000;"></div>'+
+					//	(me.plantable?('<div style="float:right;text-align:right;width:100px;"><small>'+loc("Planting cost:")+'</small><br><span class="price'+(M.canPlant(me)?'':' disabled')+'">'+Beautify(Math.round(shortenNumber(M.getCost(me))))+'</span><br><small>'+loc("%1 of CpS,<br>minimum %2",[Game.sayTime(me.cost*60*30,-1),loc("%1 cookie",LBeautify(me.costM))])+'</small></div>'):'')+
+					//	'<div style="width:300px;"><div class="name">'+cap(loc("%1 seed",me.name))+'</div><div><small>'+(me.plantable?loc("Click to select this seed for planting."):'<span class="red">'+loc("This seed cannot be planted.")+'</span>')+'<br>'+loc("%1 to harvest all mature plants of this type.",loc("Shift")+'+'+loc("Ctrl")+'+'+loc("Click"))+'</small></div></div>'+
+					//	'<div class="line"></div>'+
+					//	M.getPlantDesc(me)+
+					//'</div>';
+					return str + '</div>';
+				}
+			},
 		};
 
 		AlchTable.update = {
@@ -833,7 +1007,6 @@ Game.registerMod("Alchemists Table Minigame", {
 				//			runningPerc *= failPerc;
 				//		}
 				//	}
-//
 				//	let str = '';
 				//	for (let i = 0; i < 6; i++) {
 				//		const perc = 100 * totalPerc[i];
@@ -867,17 +1040,40 @@ Game.registerMod("Alchemists Table Minigame", {
 			},
 
 			forge: function () {
-				if (l('alchtableForge')) {
-					for (let i = 0; i < 2; i++) {
-						const me = l(`alchtableForgeSlot-${i}`)
-						if (!me) continue;
-						const ing = AlchTable[`forgeSlot${i}`];
-						me.innerHTML = /*html*/`
-							<div id="alchtableForgeSlotIcon-${i}" class="alchtableForgeSlotIcon shadowFilter ${ing >= 0 ? ' on' : ''}" style="background-position: ${-40 * ing}px 0px"></div>
+				for (let i = 0; i < 2; i++) {
+					const me = l(`alchtableForgeSlotIcon-${i}`)
+					if (!me) continue;
+					const ing = AlchTable[`forgeSlot${i}`];
+					ing >= 0 ? me.classList.add('on') : me.classList.remove('on');
+					me.style = `background-position: ${-40 * ing}px 0px`;
+				}
+			},
+
+			parts: function () {
+				for (let i = 0; i < 3; i++) {
+					for (let j = 0; j < 12; j++) {
+						if (j >= AlchTable.saveData.cookieParts[i].length) {
+							l(`alchtablePart-${i}-${j}`)?.classList.remove('on');
+						} else {
+							const me = l(`alchtablePart-${i}-${j}`);
+							if (!me) continue;
+							me.classList.add('on');
+							const partData = AlchTable.saveData.cookieParts[i][j];
+							const partInfo = AlchTable.cookieParts[partData[0]];
+							me.innerHTML = /*html*/`
+								<div id="alchtablePartIcon-${i}-${j}" class="alchtablePartIcon shadowFilter" style="background-position: ${partInfo.icon}">
+							`;
+						}
+						const amount = AlchTable.saveData.ingredients[i];
+						amount ? AlchTable.ingredients[i].l.classList.add('on') : AlchTable.ingredients[i].l.classList.remove('on');
+						AlchTable.ingredientSelected === i ? AlchTable.ingredients[i].l.classList.add('selected') : AlchTable.ingredients[i].l.classList.remove('selected');
+						AlchTable.ingredients[i].l.innerHTML = /*html*/`
+							<div id="alchtableIngredientIcon-${i}" class="alchtableIngredientIcon shadowFilter" style="background-position: ${-40 * i}px 0px">
+								<div class="alchtableIngredientNumber">${amount || ""}</div></div>
 						`;
 					}
 				}
-			}
+			},
 		};
 
 		AlchTable.callback = {
@@ -915,8 +1111,8 @@ Game.registerMod("Alchemists Table Minigame", {
 				const crumbsSacrificed = Math.trunc(Math.max(Math.min(AlchTable.saveData.inputValue, cookieCrumbs, 100000), 100));
 				AlchTable.saveData.cookieCrumbs -= crumbsSacrificed;
 
-				Math.seedrandom(Game.seed + '/' + AlchTable.saveData.ingredientsMade);
-				AlchTable.saveData.ingredientsMade++;
+				Math.seedrandom(Game.seed + '/' + AlchTable.saveData.totalIngredients);
+				AlchTable.saveData.totalIngredients++;
 				const effectiveCrumbs = crumbsSacrificed * Math.sqrt(Math.random());
 				for (let i = 5; i >= 0; i--) {
 					if (effectiveCrumbs < AlchTable.ingredientMins[i]) continue;
@@ -929,28 +1125,54 @@ Game.registerMod("Alchemists Table Minigame", {
 				AlchTable.update.ingredients();
 			},
 
+			forgeButton: function () {
+				if (AlchTable.forgeSlot0 < 0 || AlchTable.forgeSlot1 < 0 ||
+					!AlchTable.saveData.ingredients[AlchTable.forgeSlot0] || !AlchTable.saveData.ingredients[AlchTable.forgeSlot1]
+				) return false;
+				const ingredient0 = AlchTable.ingredients[AlchTable.forgeSlot0].id;
+				const ingredient1 = AlchTable.ingredients[AlchTable.forgeSlot1].id;
+				const partInfo = AlchTable.cookiePartLookup(ingredient0, ingredient1);
+				if (!partInfo || AlchTable.saveData.cookieParts[partInfo.type].length >= 12) return false;
+
+				PlaySound('snd/tick.mp3');
+				AlchTable.saveData.ingredients[AlchTable.forgeSlot0]--;
+				AlchTable.saveData.ingredients[AlchTable.forgeSlot1]--;
+				AlchTable.forgeSlot0 = -1;
+				AlchTable.forgeSlot1 = -1;
+				Math.seedrandom(Game.seed + '/' + AlchTable.saveData.totalCookieParts);
+				AlchTable.saveData.totalCookieParts++;
+
+				const partData = AlchTable.nextCookiePart(partInfo);
+				console.log(partData);
+				AlchTable.saveData.cookieParts[partInfo.type].push(partData);
+
+				AlchTable.update.ingredients();
+				AlchTable.update.forge();
+				AlchTable.update.parts();
+			},
 		};
 
 		
 		AlchTable.buildIngredients = function () {
 			const list = l('alchtableIngredientsList');
-			if (!list) return false;
-			let str = '';
-			for (let i = 0; i < 6; i++) {
-
-				str += /*html*/`
-					<div id="alchtableIngredient-${i}" class="alchtableIngredient${AlchTable.ingredientSelected === i ? ' selected' : ''}${AlchTable.saveData.ingredients[i] ? ' on' : ''}" ${Game.getDynamicTooltip(`Game.Objects['Alchemy lab'].minigame.seedTooltip(${i})`,'this')}>
-						<div id="alchtableIngredientIcon-${i}" class="alchtableIngredientIcon shadowFilter" style="background-position: ${-40 * i}px 0px">
-							<div class="alchtableIngredientNumber"></div>
+			if (list) {
+				let str = '';
+				for (let i = 0; i < 6; i++) {
+					str += /*html*/`
+						<div id="alchtableIngredient-${i}" class="alchtableIngredient" ${Game.getDynamicTooltip(`Game.Objects['Alchemy lab'].minigame.tooltip.ingredient(${i})`,'this')}>
+							<div id="alchtableIngredientIcon-${i}" class="alchtableIngredientIcon shadowFilter" style="background-position: ${-40 * i}px 0px">
+								<div class="alchtableIngredientNumber"></div>
+							</div>
 						</div>
-					</div>
-				`;
-			}
-			list.innerHTML=str;
+					`;
+				}
+				list.innerHTML=str;
+			};
 			
 			for (let i = 0; i < 6; i++) {
 				const me = AlchTable.ingredients[i];
 				me.l = l(`alchtableIngredient-${i}`);
+				if (!me.l) continue;
 				AddEvent(me.l, 'click', function (i) {
 					return function () {
 						if (!AlchTable.saveData.ingredients[i] && !Game.sesame) return false;
@@ -966,15 +1188,29 @@ Game.registerMod("Alchemists Table Minigame", {
 
 			for (let i = 0; i < 2; i++) {
 				const me = l(`alchtableForgeSlot-${i}`);
+				if (!me) continue;
 				AddEvent(me, 'click', function (i) {
 					return function () {
-						if (AlchTable.ingredientSelected === AlchTable[`forgeSlot${i}`]) AlchTable[`forgeSlot${i}`] = -1;
-						else {
-							AlchTable[`forgeSlot${i}`] = AlchTable.ingredientSelected;
-							PlaySound('snd/toneTick.mp3');
-						}
+						AlchTable[`forgeSlot${i}`] = AlchTable.ingredientSelected;
+						PlaySound('snd/toneTick.mp3');
+						AlchTable.ingredientSelected = -1;
+						AlchTable.update.ingredients();
 						AlchTable.update.forge();
 				}}(i));
+			}
+
+			for (let i = 0; i < 3; i++) {
+				const partBox = l(`alchtablePartsBox-${i}`);
+				if (!partBox) continue;
+				let str = '';
+				for (let j = 0; j < 12; j++) {
+					str += /*html*/`
+						<div id="alchtablePart-${i}-${j}" class="alchtablePart" ${Game.getDynamicTooltip(`Game.Objects['Alchemy lab'].minigame.tooltip.part(${i},${j})`,'this')}>
+							<div id="alchtablePartIcon-${i}-${j}" class="alchtablePartIcon shadowFilter" style="background-position: ${-40 * i}px 0px">
+						</div></div>
+					`;
+				}
+				partBox.innerHTML = str;
 			}
 
 			AlchTable.cursorL = l('alchtableCursor');
@@ -1021,10 +1257,10 @@ Game.registerMod("Alchemists Table Minigame", {
 				}
 				.alchtableColumn {
 					flex: 0 1 280px;
-					height: 300px;
+					height: 380px;
 					display: flex;
 				}
-				#alchtableColumn-0Box {
+				.alchtableColumnBox {
 					text-align: center;
 					margin: 4px;
 					padding: 4px 0px;
@@ -1035,6 +1271,9 @@ Game.registerMod("Alchemists Table Minigame", {
 				#alchtableColumn-1 {
 					box-shadow: 0px 0px 3px 3px rgba(255, 255, 255, 0.1);
 					background-color: rgba(255, 255, 255, 0.1);
+					flex-grow: 1;
+				}
+				#alchtableColumnBox-2 > * {
 					flex-grow: 1;
 				}
 
@@ -1103,16 +1342,17 @@ Game.registerMod("Alchemists Table Minigame", {
 					opacity: 1;
 				}
 
-				#alchtableIngredientsTitle {
+				.alchtableBoxTitle {
 					font-size: 12px;
 					width: 100%;
 					padding: 2px;
 					margin-top: 4px;
 					margin-bottom: -4px;
 				}
-				#alchtableIngredientsList {
+				.alchtableIconsBox {
 					display: flex;
 					justify-content: center;
+					flex-flow: row wrap;
 				}
 
 				.alchtableIngredient {
@@ -1187,12 +1427,35 @@ Game.registerMod("Alchemists Table Minigame", {
 				}
 				.alchtableForgeSlot:hover .alchtableForgeSlotIcon {animation: pucker 0.3s;}
 				.noFancy .alchtableForgeSlot:hover .alchtableForgeSlotIcon {animation: none;}
+
+				.alchtablePartsBox {
+					display: flex;
+					justify-content: center;
+					flex-flow: row wrap;
+				}
+
+				.alchtablePart {
+					cursor: pointer;
+					width: 40px;
+					height: 40px;
+					display: none;
+				} .alchtablePart.on {
+					display: inline;
+				}
+				.alchtablePartIcon {
+					pointer-events: none;
+					transform: translate(0,0);
+					display: inline-block;
+					width: 40px;
+					height: 40px;
+					background: url("${dir}/customIcons.png");
+				}
 			</style>
 			<div id="alchtableBG"></div>
 			<div id="alchtableDrag"><div id="alchtableCursor" class="shadowFilter"></div></div>
 			<div id="alchtableContent">
 				<div id="alchtableColumn-0" class="alchtableColumn">
-					<div id="alchtableColumn-0Box" class="framed">
+					<div id="alchtableColumn-0Box" class="alchtableColumnBox framed">
 						<div>
 							<div id="alchtableCrumbs" class="title"></div>
 							<a   id="alchtableBlackButton">DECONSTRUCT</a>
@@ -1208,21 +1471,37 @@ Game.registerMod("Alchemists Table Minigame", {
 							</div>
 						</div>
 						<div>
-							<div id="alchtableIngredientsTitle" class="title">Ingredients</div>
+							<div class="alchtableBoxTitle title">Ingredients</div>
 							<div class="line"></div>
-							<div id="alchtableIngredientsList"></div>
+							<div id="alchtableIngredientsList" class="alchtableIconsBox"></div>
 						</div>
 					</div>
 				</div>
-				<div class="alchtableColumn" id="alchtableColumn-1">
+				<div id="alchtableColumn-1" class="alchtableColumn">
 					<div id="alchtableForge">
 						<div id="alchtableForgeSlot-0" class="alchtableForgeSlot"><div id="alchtableForgeSlotIcon-0" class="alchtableForgeSlotIcon"></div></div>
 						<a id="alchtableForgeButton" class="smallFancyButton">Foo</a>
 						<div id="alchtableForgeSlot-1" class="alchtableForgeSlot"><div id="alchtableForgeSlotIcon-1" class="alchtableForgeSlotIcon"></div></div>
 					</div>
 				</div>
-				<div class="alchtableColumn" id="alchtableColumn-2">
-					Ethan loves bingus!
+				<div id="alchtableColumn-2" class="alchtableColumn">
+					<div id="alchtableColumnBox-2" class="alchtableColumnBox framed">
+						<div id="alchtablePartsBoxOuter-0">
+							<div class="alchtableBoxTitle title">Dough</div>
+							<div class="line"></div>
+							<div id="alchtablePartsBox-0" class="alchtableIconsBox"></div>
+						</div>
+						<div id="alchtablePartsBoxOuter-1">
+							<div class="alchtableBoxTitle title">Spread</div>
+							<div class="line"></div>
+							<div id="alchtablePartsBox-1" class="alchtableIconsBox"></div>
+						</div>
+						<div id="alchtablePartsBoxOuter-2">
+							<div class="alchtableBoxTitle title">Bits</div>
+							<div class="line"></div>
+							<div id="alchtablePartsBox-2" class="alchtableIconsBox"></div>
+						</div>
+					</div>
 				</div>
 			</div>
 		`;
@@ -1232,6 +1511,7 @@ Game.registerMod("Alchemists Table Minigame", {
 		AddEvent(l('alchtableWhiteSlider'), 'change', AlchTable.callback.whiteSlider);
 		AddEvent(l('alchtableWhiteSlider'), 'input', AlchTable.callback.whiteSlider);
 		AddEvent(l('alchtableWhiteButton'), 'click', AlchTable.callback.whiteButton);
+		AddEvent(l('alchtableForgeButton'), 'click', AlchTable.callback.forgeButton);
 
 
 
