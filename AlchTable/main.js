@@ -115,7 +115,7 @@ Game.registerMod("Alchemists Table Minigame", {
 			pbQualityMult: 0,
 			chocQualityMult: 0,
 			deconstructAmount: 0.1,
-			ingredentDivisor: 1,
+			ingredientDivisor: 1,
 			ccpsm: 0,
 			ccpsa: 0,
 		};
@@ -131,7 +131,6 @@ Game.registerMod("Alchemists Table Minigame", {
 		
 			deconstructing: false,
 			inputValue: 100,
-			selectedIngredients: [0, 0],
 			selectedParts: [0, 0, 0],
 			effectsOn: false,
 		
@@ -143,458 +142,49 @@ Game.registerMod("Alchemists Table Minigame", {
 		AlchTable.ccps = 0;
 		AlchTable.suckedPs = 0;
 		AlchTable.suckRate = 0.1;
-		AlchTable.ingredentMins = [0, 100, 316, 1000, 3160, 10000];
+		AlchTable.ingredientMins = [0, 100, 316, 1000, 3160, 10000];
+		AlchTable.ingredientSelected = -1;
+		AlchTable.cursor = true;
 
-		AlchTable.getIngredentMins = function () {
-			const ingredentMins = [0, 100, 316, 1000, 3160, 10000];
-			AlchTable.ingredentMins.map(v => v / (AlchTable.effs.ingredentDivisor || 1));
-		};
-
-		AlchTable.calculateEffs = function () {
-
-			//metaEffs.qualityMult = (0.05 * Game.auraMult('Supreme Intellect'));
-			//if (M.saveData.selectedParts[0] !== 0 && M.ownedCookieParts[0][M.saveData.selectedParts[0] - 1].id === 'peanutButterCookie') {
-			//	metaEffs.pbQualityMult = (M.cookieParts['peanutButterCookie'].max * M.ownedCookieParts[0][M.saveData.selectedParts[0] - 1].quality * metaEffs.qualityMult);
-			//}
-			//if (M.saveData.selectedParts[1] !== 0 && M.ownedCookieParts[1][M.saveData.selectedParts[1] - 1].id === 'darkChocolateChips') {
-			//	metaEffs.chocQualityMult = (M.cookieParts['darkChocolateChips'].max * M.ownedCookieParts[1][M.saveData.selectedParts[1] - 1].quality * metaEffs.qualityMult);
-			//}
-
-			//for (let i = 0; i < 3; i++) {
-			//	if (M.saveData.selectedParts[i] === 0) continue;
-			//	const part = M.ownedCookieParts[i][M.saveData.selectedParts[i] - 1];
-			//	const basePart = M.cookieParts[part.id];
-			//	basePart.effect(metaEffs, (part.quality * (1 + (metaEffs.qualityMult ?? 0) + ((i !== 0 ? metaEffs.pbQualityMult : 0) ?? 0) + ((basePart.combo.includes('chocolate') ? metaEffs.chocQualityMult : 0) ?? 0))))
-			//	part.effects.forEach(effect => M.cookieEffects[effect.id].effects[effect.idid].effect(metaEffs, (effect.quality * ((1 + (metaEffs.qualityMult ?? 0) + ((i !== 0 ? metaEffs.pbQualityMult : 0) ?? 0) + ((effect.id === 'chocolate' ? metaEffs.chocQualityMult : 0) ?? 0))))));
-			//}
-
-			// AlchTable.effectTotals = metaEffs;
-			AlchTable.flatEffs.suckRate = AlchTable.saveData.deconstructing ? 0.1 : 0;
-
-			AlchTable.getIngredentMins();
-			Game.recalculateGains = 1;
-		};
-
-		AlchTable.update = {
-			black: function () {
-				const button = l('alchtableBlackButton');
-				if (button) button.className = `smallFancyButton${AlchTable.saveData.deconstructing ? ' on' : ''}`;
-
-				const status = l('alchtableBlackStatus');
-				if (status) {
-					let str = /*html*/`
-						<p>
-							${AlchTable.saveData.deconstructing ? 'Deconstructing' : 'Deconstruct'}<br>
-							<span style="font-size:10pt;font-weight:bold"><span style="font-size:11pt;color:red">${Beautify(AlchTable.suckedPs, 1)}</span><br>(${Beautify(AlchTable.suckRate*100, 0)}%) raw cookies/second</span><br><br>
-							${AlchTable.saveData.deconstructing ? 'Gaining' : 'To gain'}<br>
-							<span style="font-size:10pt;font-weight:bold"><span style="font-size:11pt;color:green">${Beautify(AlchTable.ccps, 1)}</span><br>cookie crumbs/second</span>
-						</p>
-					`;
-
-					status.className = AlchTable.saveData.deconstructing ? 'on' : '';
-					status.innerHTML = str;
-				}
+		
+		AlchTable.ingredients = [
+			{
+				name: "Flour",
+				id: 'flour',
+				min: 0,
+				str: "",
 			},
-
-			whiteNumber: function () {
-				const number = l('alchtableWhiteNumber');
-				if (number) {
-					let str = /*html*/`
-						<p>
-							<span style="font-size:14pt;font-weight:bold">${Beautify(AlchTable.saveData.cookieCrumbs, 1)}</span><br>
-							cookie crumbs
-						</p>
-					`;
-					number.innerHTML = str;
-				}
+			{
+				name: "Milk",
+				id: 'milk',
+				min: 100,
+				str: "",
 			},
-
-			whiteInput: function () {
-				AlchTable.saveData.inputValue = Math.trunc(Math.max(Math.min(AlchTable.saveData.inputValue, AlchTable.saveData.cookieCrumbs, 100000), 100));
-				const enoughCrumbs = AlchTable.saveData.cookieCrumbs >= 100;
-
-				const sliderBox = l('alchtableWhiteSliderBox');
-				if (sliderBox) sliderBox.className = `sliderBox${enoughCrumbs ? ' on' : ''}`;
-
-				const input = l('alchtableWhiteSliderInput');
-				if (input) {
-					if (enoughCrumbs) {
-						input.removeAttribute("readonly");
-						input.value = AlchTable.saveData.inputValue;
-					} else {
-						input.setAttribute("readonly", true);
-						input.value = 100;
-					}
-				};
-
-				const slider = l('alchtableWhiteSlider');
-				const sliderText = l('alchtableWhiteSliderRightText');
-				if (slider && sliderText) {
-					slider.value = Math.min(Math.max(((Math.log10(AlchTable.saveData.inputValue) - 2) / 3), 0), 1);
-					const max = Math.min(Math.max(((Math.log10(AlchTable.saveData.cookieCrumbs) - 2) / 3), 0), 1);
-					slider.style = `
-						--alchtableWhiteSlider-background: linear-gradient(90deg, #999 ${max * 100}%, #d66 ${0.001 + max * 100}%);
-						--alchtableWhiteSlider-thumb: ${enoughCrumbs ? '#ccc' : '#fbb'};
-						clear: both;
-					`;
-					sliderText.innerHTML = enoughCrumbs ? `${Beautify(((AlchTable.saveData.inputValue / AlchTable.saveData.cookieCrumbs) * 100), 1)}%` : "-";
-				}
-
-				const button = l('alchtableWhiteButton');
-				if (button) {
-					button.className = `smallFancyButton${enoughCrumbs ? ' on' : ''}`; 
-					button.innerHTML = `Sacrifice:<br>${enoughCrumbs ? AlchTable.saveData.inputValue : '-'} crumbs`;
-				}
-
-				const box = l('alchtableWhiteBox');
-				if (box) {
-					const totalPerc = [0, 0, 0, 0, 0, 0];
-					if (enoughCrumbs) {
-						let runningPerc = 1;
-						for (let i = 5; i >= 0; i--) {
-							let failPerc = 1;
-							if (AlchTable.saveData.inputValue > AlchTable.ingredentMins[i]) failPerc = (AlchTable.ingredentMins[i] / AlchTable.saveData.inputValue)**2;
-							totalPerc[i] = runningPerc * (1 - failPerc);
-							runningPerc *= failPerc;
-						}
-					}
-
-					let str = '';
-					for (let i = 0; i < 6; i++) {
-						const perc = 100 * totalPerc[i];
-						str += `
-							<div class="alchtableWhiteIngredient${perc ? ' on' : ''}">
-								<div class="alchtableIngredientPercent" style="width:32px">${perc
-									? perc >= 1 ? Beautify(perc, 1) : '<1'
-									: '0'}%</div>
-								<div class="alchtableIngredientIcon" style="background-position: ${-40 * i}px 0px"></div>
-							</div>
-						`;
-					}
-					box.innerHTML = str;
-				}
+			{
+				name: "Butter",
+				id: 'butter',
+				min: 316,
+				str: "",
 			},
-
-			yellowBox: function (crumbs = 0) {
-				const box = l('alchtableYellowBox');
-				if (box) {
-					let str = '';
-					for (let i = 0; i < 6; i++) {
-						const amount = AlchTable.saveData.ingredients[i];
-						str += `
-							<div class="alchtableWhiteIngredient${amount ? ' on' : ''}">
-								<div class="alchtableIngredientPercent" style="width:32px">${amount || ""}</div>
-								<div class="alchtableIngredientIcon" style="background-position: ${-40 * i}px 0px"></div>
-							</div>
-						`;
-					}
-					box.innerHTML = str;
-				}
+			{
+				name: "Chocolate",
+				id: 'chocolate',
+				min: 1000,
+				str: "",
+			},
+			{
+				name: "Nuts",
+				id: 'nuts',
+				min: 3160,
+				str: "",
+			},
+			{
+				name: "Sugar",
+				id: 'sugar',
+				min: 10000,
+				str: "",
 			}
-		};
-
-		AlchTable.callback = {
-			blackButton: function () {
-				AlchTable.saveData.deconstructing = !AlchTable.saveData.deconstructing;
-				PlaySound('snd/tick.mp3');
-				AlchTable.calculateEffs();
-				AlchTable.update.black();
-			},
-
-			whiteInput: function () {
-				const input = l('alchtableWhiteSliderInput');
-				if (!input) return false;
-
-				AlchTable.saveData.inputValue = Math.trunc(Math.max(Math.min(input.value, AlchTable.saveData.cookieCrumbs, 100000), 100));
-
-				AlchTable.update.whiteInput();
-			},
-
-			whiteSlider: function () {
-				const slider = l('alchtableWhiteSlider');
-				if (!slider) return false;
-
-				const inputValue = Math.trunc(100 * (1000**slider.value));
-				AlchTable.saveData.inputValue = Math.trunc(Math.max(Math.min(inputValue, AlchTable.saveData.cookieCrumbs, 100000), 100));
-
-				AlchTable.update.whiteInput();
-			},
-
-			whiteButton: function () {
-				const cookieCrumbs = Math.trunc(AlchTable.saveData.cookieCrumbs);
-				if (cookieCrumbs < 100) return false;
-				PlaySound('snd/tick.mp3');
-
-				const crumbsSacrificed = Math.trunc(Math.max(Math.min(AlchTable.saveData.inputValue, cookieCrumbs, 100000), 100));
-				AlchTable.saveData.cookieCrumbs -= crumbsSacrificed;
-
-				Math.seedrandom(Game.seed + '/' + AlchTable.saveData.ingredientsMade);
-				AlchTable.saveData.ingredientsMade++;
-				const effectiveCrumbs = crumbsSacrificed * Math.sqrt(Math.random());
-				for (let i = 5; i >= 0; i--) {
-					if (effectiveCrumbs < AlchTable.ingredentMins[i]) continue;
-					AlchTable.saveData.ingredients[i]++;
-					break;
-				}
-				
-				AlchTable.update.whiteNumber();
-				AlchTable.update.whiteInput();
-				AlchTable.update.yellowBox();
-			}
-		};
-
-		let str = /*html*/`
-			<style>
-				#alchtableBG{
-					background: url(img/shadedBorders.png), url(${dir}/bg.png);
-					background-size: 100% 100%, auto;
-					position: absolute;
-					left: 0px;
-					right: 0px;
-					top: 0px;
-					bottom: 16px;
-				}
-
-				#alchtableContent {
-					position: relative;
-					box-sizing: border-box;
-					display: flex;
-					flex-flow: row wrap;
-					text-align:center;
-				}
-				#alchtableContent > * {
-					display: flex;
-					flex-flow: row wrap;
-					flex: 1 1 440px;
-				}
-				.alchtableColumn {
-					flex: 1 1 210px;
-					height: 250px;
-					margin: 6px 4px;
-				}
-
-				#alchtableBlack {
-					box-shadow: 0px 0px 3px 3px rgba(0, 0, 0, 0.3);
-					background-color: rgba(0, 0, 0, 0.3);
-					display: inline-flex;
-					flex-direction: column;
-					flex-wrap: nowrap;
-				}
-				#alchtableBlackInfo {
-					margin: auto;
-					flex: 1;
-				}
-				#alchtableBlackButton {
-					margin: auto;
-					width: 180px;
-					flex: 0;
-					font-size: 16pt;
-					opacity: 0.5;
-				} #alchtableBlackButton.on {
-					background: url(img/shadedBordersRed.png);
-					background-size: 100% 100%, auto;
-					opacity: 1;
-				}
-				#alchtableBlackStatus {
-					opacity: 0.5;
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					font-size: 8pt;
-					flex: 1;
-				} #alchtableBlackStatus.on {
-					opacity: 1;
-				}
-
-				#alchtableWhite {
-					box-shadow: 0px 0px 3px 3px rgba(255, 255, 255, 0.1);
-					background-color: rgba(255, 255, 255, 0.1);
-					display: inline-flex;
-					flex-direction: column;
-					flex-wrap: nowrap;
-				}
-				#alchtableWhiteNumber {
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					font-size:12pt;
-					margin: auto;
-					flex: 1;
-				}
-				#alchtableWhiteSliderBox {
-					width: 180px;
-					margin: 6px auto 3px;
-					flex: 0;
-					opacity: 0.5;
-					background-size: 100% 100%;
-				} #alchtableWhiteSliderBox.on {
-					opacity: 1;
-				}
-				#alchtableWhiteSliderInput {
-					background: #999;
-					font-size: 8pt;
-					border: none;
-					border-radius: 4px;
-					margin: -1px 0 1px;
-					width: 40%;
-				}
-				#alchtableWhiteSlider {
-					--alchtableWhiteSlider-background: #d66;
-					--alchtableWhiteSlider-thumb: #fbb;
-					clear: both;
-				}
-				#alchtableWhiteSlider::-webkit-slider-runnable-track {
-					background: url("${dir}/lines.svg"), var(--alchtableWhiteSlider-background);
-					background-size: 100% 100%
-				}
-				#alchtableWhiteSlider::-moz-range-track {
-					background: url("${dir}/lines.svg"), var(--alchtableWhiteSlider-background);
-					background-size: 100% 100%
-				}
-				#alchtableWhiteSlider::-webkit-slider-thumb {
-					background: var(--alchtableWhiteSlider-thumb);
-				}
-				#alchtableWhiteSlider::-moz-range-thumb {
-					background: var(--alchtableWhiteSlider-thumb);
-				}
-				#alchtableWhiteButton {
-					width: 160px;
-					margin: 3px auto 6px;
-					flex: 0;
-					opacity: 0.5;
-				} #alchtableWhiteButton.on {
-					opacity: 1;
-				}
-				#alchtableWhiteBox {
-					display: grid;
-					grid-template-columns: repeat(3, 1fr);
-					grid-template-rows: repeat(2, 1fr);
-					grid-column-gap: 6px;
-					grid-row-gap: 6px;
-					place-items: center;
-					margin: 4px auto;
-					flex: 1;
-				}
-				.alchtableWhiteIngredient {
-					display: inline-flex;
-					align-items: center;
-					justify-content: center;
-					opacity: 0.5;
-				}
-				.alchtableWhiteIngredient.on {
-					opacity: 1;
-				}
-				.alchtableIngredientPercent {
-					position: relative;
-					z-index: 1;
-					font-weight: bold;
-					text-shadow: 2px 2px 3px #000;
-				}
-				.alchtableIngredientIcon {
-					margin: 0 0 0 -4px;
-					width: 40px;
-					height: 40px;
-					background: url("${dir}/customIcons.png");
-				}
-				#alchtableWhiteBox {
-					display: grid;
-					grid-template-columns: repeat(3, 1fr);
-					grid-template-rows: repeat(2, 1fr);
-					grid-column-gap: 6px;
-					grid-row-gap: 6px;
-					place-items: center;
-					margin: 4px auto;
-					flex: 1;
-					font-weight: bold;
-				}
-			</style>
-			<div id="alchtableBG"></div>
-			<div id="alchtableContent">
-				<div>
-					<div class="alchtableColumn" id="alchtableBlack">
-						<div id="alchtableBlackInfo">
-							Info
-						</div>
-						<a id="alchtableBlackButton">DECONSTRUCT</a>
-						<div id="alchtableBlackStatus"></div>
-					</div>
-					<div class="alchtableColumn" id="alchtableWhite">
-						<div id="alchtableWhiteNumber"></div>
-						<div class="sliderBox" id="alchtableWhiteSliderBox">
-							<input style="float:left;" class="smallFancyButton" id="alchtableWhiteSliderInput" type="number" value="100" min="100" max="100000" readonly="true">
-							<div style="float:right;" class="smallFancyButton" id="alchtableWhiteSliderRightText">-%</div>
-							<input type="range" id="alchtableWhiteSlider" class="slider" style="" min="0" max="1" step="0.001"
-								value="0"  onmouseup="PlaySound('snd/tick.mp3');">
-						</div>
-						<a class="smallFancyButton" id="alchtableWhiteButton"></a>
-						to gain one ingredent:
-						<div id="alchtableWhiteBox" class="framed"></div>
-					</div>
-				</div>
-				<div>
-					<div class="alchtableColumn" id="alchtableYellow">
-						<div id="alchtableYellowBox" class="framed"></div>
-						Did you know?
-					</div>
-					<div class="alchtableColumn" id="alchtableRed">
-						Ethan loves bingus!
-					</div>
-				</div>
-			</div>
-		`;
-		l('rowSpecial' + AlchTable.parent.id).innerHTML = str;
-		AddEvent(l('alchtableBlackButton'), 'click', AlchTable.callback.blackButton);
-		AddEvent(l('alchtableWhiteSliderInput'), 'change', AlchTable.callback.whiteInput);
-		AddEvent(l('alchtableWhiteSlider'), 'change', AlchTable.callback.whiteSlider);
-		AddEvent(l('alchtableWhiteSlider'), 'input', AlchTable.callback.whiteSlider);
-		AddEvent(l('alchtableWhiteButton'), 'click', AlchTable.callback.whiteButton);
-
-
-
-		AlchTable.logic = function () {
-			if (AlchTable.saveData.deconstructing) {
-				AlchTable.suckedPs = Game.cookiesPs * Game.cpsSucked;
-				AlchTable.ccps = (Math.trunc((Math.log10(AlchTable.suckedPs) / 3) * Game.eff('ccps') * 1000) / 1000) + Game.flatEff('ccps');
-				AlchTable.saveData.cookieCrumbs += AlchTable.ccps / Game.fps;
-			}
-		};
-
-		AlchTable.draw = function () {
-			if (AlchTable.saveData.deconstructing) AlchTable.update.whiteNumber();
-		};
-
-		AlchTable.check = function() {
-			AlchTable.calculateEffs();
-			Object.values(AlchTable.update)
-				.filter(f => typeof f === 'function')
-				.forEach(f => f());
-		};
-		Game.registerHook('check', AlchTable.check);
-
-		AlchTable.reset = function (hard) {
-			if (hard) AlchTable.saveData = {
-				cookieCrumbs: 0,
-				ingredients: [0, 0, 0, 0, 0, 0],
-				cookieParts: [[], [], []],
-			
-				deconstructing: false,
-				inputValue: 100,
-				selectedIngredients: [0, 0],
-				selectedParts: [0, 0, 0],
-				effectsOn: false,
-			
-				totalCookieCrumbs: 0,
-				totalIngredients: 0,
-				totalCookieParts: 0,
-				totalRecombs: 0,
-			};
-
-			AlchTable.check();
-		};
-		Game.registerHook('reset', AlchTable.reset);
-
-		AlchTable.save = function() {return ""};
-		AlchTable.load = function() {};
+		],
 
 		AlchTable.cookieParts = { // Units| 0: #, 1: %, 2: min + sec, 3: # times, 4: ceil(#), 5: ‱
 			plainCookie: {
@@ -1058,7 +648,7 @@ Game.registerMod("Alchemists Table Minigame", {
 					aura: 'Arcane Aura'
 				},
 				{
-					effsStr: 'Your shipments each have a small chance of delivering an ingredent each second.',
+					effsStr: 'Your shipments each have a small chance of delivering an ingredient each second.',
 					aura: 'Dragonflight'
 				},
 				{
@@ -1108,34 +698,543 @@ Game.registerMod("Alchemists Table Minigame", {
 			]
 		};
 
-		//this.buttonClicks=0;//"this" refers to this mod; we're declaring a variable local to this mod. Other mods could access it with Game.mods["cooler sample mod"].buttonClicks
+		AlchTable.getingredientMins = function () {
+			const ingredientMins = [0, 100, 316, 1000, 3160, 10000];
+			AlchTable.ingredientMins.map(v => v / (AlchTable.effs.ingredientDivisor || 1));
+		};
+
+		AlchTable.calculateEffs = function () {
+
+			//metaEffs.qualityMult = (0.05 * Game.auraMult('Supreme Intellect'));
+			//if (M.saveData.selectedParts[0] !== 0 && M.ownedCookieParts[0][M.saveData.selectedParts[0] - 1].id === 'peanutButterCookie') {
+			//	metaEffs.pbQualityMult = (M.cookieParts['peanutButterCookie'].max * M.ownedCookieParts[0][M.saveData.selectedParts[0] - 1].quality * metaEffs.qualityMult);
+			//}
+			//if (M.saveData.selectedParts[1] !== 0 && M.ownedCookieParts[1][M.saveData.selectedParts[1] - 1].id === 'darkChocolateChips') {
+			//	metaEffs.chocQualityMult = (M.cookieParts['darkChocolateChips'].max * M.ownedCookieParts[1][M.saveData.selectedParts[1] - 1].quality * metaEffs.qualityMult);
+			//}
+
+			//for (let i = 0; i < 3; i++) {
+			//	if (M.saveData.selectedParts[i] === 0) continue;
+			//	const part = M.ownedCookieParts[i][M.saveData.selectedParts[i] - 1];
+			//	const basePart = M.cookieParts[part.id];
+			//	basePart.effect(metaEffs, (part.quality * (1 + (metaEffs.qualityMult ?? 0) + ((i !== 0 ? metaEffs.pbQualityMult : 0) ?? 0) + ((basePart.combo.includes('chocolate') ? metaEffs.chocQualityMult : 0) ?? 0))))
+			//	part.effects.forEach(effect => M.cookieEffects[effect.id].effects[effect.idid].effect(metaEffs, (effect.quality * ((1 + (metaEffs.qualityMult ?? 0) + ((i !== 0 ? metaEffs.pbQualityMult : 0) ?? 0) + ((effect.id === 'chocolate' ? metaEffs.chocQualityMult : 0) ?? 0))))));
+			//}
+
+			// AlchTable.effectTotals = metaEffs;
+			AlchTable.flatEffs.suckRate = AlchTable.saveData.deconstructing ? 0.1 : 0;
+
+			AlchTable.getingredientMins();
+			Game.recalculateGains = 1;
+		};
+
 		
-		////create the button inside the Store div
-		//l('storeTitle').insertAdjacentHTML('beforeend','<a style="font-size:12px;position:absolute;bottom:2px;right:2px;display:block;" class="smallFancyButton" id="storeClicker"></a>');
-		//this.updateScore();
-		//
-		////this attaches a click detector to our button
-		//AddEvent(l('storeClicker'),'click',function(){
-		//	PlaySound('snd/pop'+Math.floor(Math.random()*3+1)+'.mp3',0.5);//play the sound pop1, pop2 or pop3 at random with half-volume
-		//	MOD.buttonClicks+=1;
-		//	MOD.updateScore();
-		//	//this displays a random message for 2 seconds for every 20 clicks on our button
-		//	if (MOD.buttonClicks%20==0 && MOD.buttonClicks>0) Game.Notify(choose([`Splendid!`,`Keep going!`,`Amazing!`,`Incredible!`,`Outstanding!`]),'',0,2);
-		//});
-		//
-		////this registers a hook that triggers on game reset
-		////we use this to reset the mod's buttonClicks variable (but only in a hard reset)
-		//Game.registerHook('reset',function(hard){
-		//	if (hard)
-		//	{
-		//		MOD.buttonClicks=0;
-		//		MOD.updateScore();
-		//	}
-		//});
+		AlchTable.seedTooltip = function (id) {
+			return function() {
+				//var me=M.plantsById[id];
+				//var str='<div style="padding:8px 4px;min-width:400px;" id="tooltipGardenSeed">'+
+				//	'<div class="icon" style="background:url('+Game.resPath+'img/gardenPlants.png?v='+Game.version+');float:left;margin-left:-24px;margin-top:-4px;background-position:'+(-0*48)+'px '+(-me.icon*48)+'px;"></div>'+
+				//	'<div class="icon" style="background:url('+Game.resPath+'img/gardenPlants.png?v='+Game.version+');float:left;margin-left:-24px;margin-top:-28px;background-position:'+(-4*48)+'px '+(-me.icon*48)+'px;"></div>'+
+				//	'<div style="background:url('+Game.resPath+'img/turnInto.png);width:20px;height:22px;position:absolute;left:28px;top:24px;z-index:1000;"></div>'+
+				//	(me.plantable?('<div style="float:right;text-align:right;width:100px;"><small>'+loc("Planting cost:")+'</small><br><span class="price'+(M.canPlant(me)?'':' disabled')+'">'+Beautify(Math.round(shortenNumber(M.getCost(me))))+'</span><br><small>'+loc("%1 of CpS,<br>minimum %2",[Game.sayTime(me.cost*60*30,-1),loc("%1 cookie",LBeautify(me.costM))])+'</small></div>'):'')+
+				//	'<div style="width:300px;"><div class="name">'+cap(loc("%1 seed",me.name))+'</div><div><small>'+(me.plantable?loc("Click to select this seed for planting."):'<span class="red">'+loc("This seed cannot be planted.")+'</span>')+'<br>'+loc("%1 to harvest all mature plants of this type.",loc("Shift")+'+'+loc("Ctrl")+'+'+loc("Click"))+'</small></div></div>'+
+				//	'<div class="line"></div>'+
+				//	M.getPlantDesc(me)+
+				//'</div>';
+				return "<div>foo</div";
+			};
+		};
+
+		AlchTable.update = {
+
+			crumbs: function () {
+				const number = l('alchtableCrumbs');
+				if (number) {
+					let crumbStr = Beautify(Math.trunc(AlchTable.saveData.cookieCrumbs));
+					if (Math.trunc(AlchTable.saveData.cookieCrumbs) >= 1000000) //dirty padding
+					{
+						const spacePos = crumbStr.indexOf(' ');
+						const dotPos = crumbStr.indexOf('.');
+						let decimal = '';
+						if (spacePos !== -1) {
+							if (dotPos === -1) decimal += '.000';
+							else {
+								if (spacePos - dotPos === 2) decimal += '00';
+								if (spacePos - dotPos === 3) decimal += '0';
+							}
+						}
+						crumbStr = [crumbStr.slice(0, spacePos), decimal, crumbStr.slice(spacePos)].join('');
+					}
+
+					crumbStr += ` crumb${Math.trunc(AlchTable.saveData.cookieCrumbs) === 1 ? '' : 's'}`;
+					if (crumbStr.length > 14) crumbStr = crumbStr.replace(' ','<br>');
+
+					let str = /*html*/`
+						<p>
+							<span ${Game.prefs.monospace ? 'class="monospace"' : ''} style="font-size:14pt;">${crumbStr}</span>
+							<br><span style="font-size:8pt;${AlchTable.saveData.deconstructing ? '' : 'opacity: 0.5;'}">per second: ${AlchTable.saveData.deconstructing ? Beautify(AlchTable.ccps, 1) : '0'}</span>
+						</p>
+					`;
+					number.innerHTML = str;
+				}
+
+				const button = l('alchtableBlackButton');
+				if (button) button.className = `smallFancyButton${AlchTable.saveData.deconstructing ? ' on' : ''}`;
+			},
+
+			whiteInput: function () {
+				AlchTable.saveData.inputValue = Math.trunc(Math.max(Math.min(AlchTable.saveData.inputValue, AlchTable.saveData.cookieCrumbs, 100000), 100));
+				const enoughCrumbs = AlchTable.saveData.cookieCrumbs >= 100;
+
+				const sliderBox = l('alchtableWhiteSliderBox');
+				if (sliderBox) sliderBox.className = `sliderBox${enoughCrumbs ? ' on' : ''}`;
+
+				const input = l('alchtableWhiteSliderInput');
+				if (input) {
+					if (enoughCrumbs) {
+						input.removeAttribute("readonly");
+						input.value = AlchTable.saveData.inputValue;
+					} else {
+						input.setAttribute("readonly", true);
+						input.value = 100;
+					}
+				};
+
+				const slider = l('alchtableWhiteSlider');
+				const sliderText = l('alchtableWhiteSliderRightText');
+				if (slider && sliderText) {
+					slider.value = Math.min(Math.max(((Math.log10(AlchTable.saveData.inputValue) - 2) / 3), 0), 1);
+					const max = Math.min(Math.max(((Math.log10(AlchTable.saveData.cookieCrumbs) - 2) / 3), 0), 1);
+					slider.style = `
+						--alchtableWhiteSlider-background: linear-gradient(90deg, #999 ${max * 100}%, #d66 ${0.001 + max * 100}%);
+						--alchtableWhiteSlider-thumb: ${enoughCrumbs ? '#ccc' : '#fbb'};
+						clear: both;
+					`;
+					sliderText.innerHTML = enoughCrumbs ? `${Beautify(((AlchTable.saveData.inputValue / AlchTable.saveData.cookieCrumbs) * 100), 1)}% of bank` : "-";
+				}
+
+				const button = l('alchtableWhiteButton');
+				if (button) {
+					button.className = `smallFancyButton${enoughCrumbs ? ' on' : ''}`; 
+					button.innerHTML = `Sacrifice:<br>${enoughCrumbs ? AlchTable.saveData.inputValue : '-'} crumbs`;
+				}
+
+				//const box = l('alchtableIngredientsList');
+				//if (box) {
+				//	const totalPerc = [0, 0, 0, 0, 0, 0];
+				//	if (enoughCrumbs) {
+				//		let runningPerc = 1;
+				//		for (let i = 5; i >= 0; i--) {
+				//			let failPerc = 1;
+				//			if (AlchTable.saveData.inputValue > AlchTable.ingredientMins[i]) failPerc = (AlchTable.ingredientMins[i] / AlchTable.saveData.inputValue)**2;
+				//			totalPerc[i] = runningPerc * (1 - failPerc);
+				//			runningPerc *= failPerc;
+				//		}
+				//	}
+//
+				//	let str = '';
+				//	for (let i = 0; i < 6; i++) {
+				//		const perc = 100 * totalPerc[i];
+				//		str += /*html*/`
+				//			<div class="alchtableIngredient${perc ? ' on' : ''}">
+				//				<div class="alchtableIngredientIcon" style="background-position: ${-40 * i}px 0px">
+				//					<div class="alchtableIngredientNumber">${perc
+				//						? perc >= 1 ? Beautify(perc, 1) : '<1'
+				//						: '0'}%</div>
+				//				</div>
+				//			</div>
+				//		`;
+				//	}
+				//	box.innerHTML = str;
+				//}
+			},
+
+			ingredients: function () {
+				if (l('alchtableIngredientsList')) {
+					for (let i = 0; i < 6; i++) {
+						if (!AlchTable.ingredients[i].l) continue;
+						const amount = AlchTable.saveData.ingredients[i];
+						amount ? AlchTable.ingredients[i].l.classList.add('on') : AlchTable.ingredients[i].l.classList.remove('on');
+						AlchTable.ingredientSelected === i ? AlchTable.ingredients[i].l.classList.add('selected') : AlchTable.ingredients[i].l.classList.remove('selected');
+						AlchTable.ingredients[i].l.innerHTML = /*html*/`
+							<div id="alchtableIngredientIcon-${i}" class="alchtableIngredientIcon shadowFilter" style="background-position: ${-40 * i}px 0px">
+								<div class="alchtableIngredientNumber">${amount || ""}</div></div>
+						`;
+					}
+				}
+			}
+		};
+
+		AlchTable.callback = {
+			blackButton: function () {
+				AlchTable.saveData.deconstructing = !AlchTable.saveData.deconstructing;
+				PlaySound('snd/tick.mp3');
+				AlchTable.calculateEffs();
+				AlchTable.update.crumbs();
+			},
+
+			whiteInput: function () {
+				const input = l('alchtableWhiteSliderInput');
+				if (!input) return false;
+
+				AlchTable.saveData.inputValue = Math.trunc(Math.max(Math.min(input.value, AlchTable.saveData.cookieCrumbs, 100000), 100));
+
+				AlchTable.update.whiteInput();
+			},
+
+			whiteSlider: function () {
+				const slider = l('alchtableWhiteSlider');
+				if (!slider) return false;
+
+				const inputValue = Math.trunc(100 * (1000**slider.value));
+				AlchTable.saveData.inputValue = Math.trunc(Math.max(Math.min(inputValue, AlchTable.saveData.cookieCrumbs, 100000), 100));
+
+				AlchTable.update.whiteInput();
+			},
+
+			whiteButton: function () {
+				const cookieCrumbs = Math.trunc(AlchTable.saveData.cookieCrumbs);
+				if (cookieCrumbs < 100) return false;
+				PlaySound('snd/tick.mp3');
+
+				const crumbsSacrificed = Math.trunc(Math.max(Math.min(AlchTable.saveData.inputValue, cookieCrumbs, 100000), 100));
+				AlchTable.saveData.cookieCrumbs -= crumbsSacrificed;
+
+				Math.seedrandom(Game.seed + '/' + AlchTable.saveData.ingredientsMade);
+				AlchTable.saveData.ingredientsMade++;
+				const effectiveCrumbs = crumbsSacrificed * Math.sqrt(Math.random());
+				for (let i = 5; i >= 0; i--) {
+					if (effectiveCrumbs < AlchTable.ingredientMins[i]) continue;
+					AlchTable.saveData.ingredients[i]++;
+					break;
+				}
+				
+				AlchTable.update.crumbs();
+				AlchTable.update.whiteInput();
+				AlchTable.update.ingredients();
+			}
+		};
+
 		
-		//to finish off, we're replacing the big cookie picture with a cool cookie, why not (the image is in this mod's directory)
-		//Game.Loader.Replace('perfectCookie.png',this.dir+'/coolCookie.png');
-		
+		AlchTable.buildIngredients = function () {
+			const list = l('alchtableIngredientsList');
+			if (!list) return false;
+			let str = '';
+			for (let i = 0; i < 6; i++) {
+
+				str += /*html*/`
+					<div id="alchtableIngredient-${i}" class="alchtableIngredient${AlchTable.ingredientSelected === i ? ' selected' : ''}${AlchTable.saveData.ingredients[i] ? ' on' : ''}" ${Game.getDynamicTooltip(`Game.Objects['Alchemy lab'].minigame.seedTooltip(${i})`,'this')}>
+						<div id="alchtableIngredientIcon-${i}" class="alchtableIngredientIcon shadowFilter" style="background-position: ${-40 * i}px 0px">
+							<div class="alchtableIngredientNumber"></div>
+						</div>
+					</div>
+				`;
+			}
+			list.innerHTML=str;
+			
+			for (let i = 0; i < 6; i++) {
+				const me = AlchTable.ingredients[i];
+				me.l = l(`alchtableIngredient-${i}`);
+				AddEvent(me.l, 'click', function (me, i) {
+					return function () {
+						if (!AlchTable.saveData.ingredients[i] && !Game.sesame) return false;
+						if (AlchTable.ingredientSelected === i) AlchTable.ingredientSelected = -1;
+						else { 
+							AlchTable.ingredientSelected = i;
+							PlaySound('snd/toneTick.mp3');
+						}
+						AlchTable.update.ingredients();
+				}}(me, i));
+				AddEvent(me.l, 'mouseover', () => AlchTable.cursor = false);
+				AddEvent(me.l, 'mouseout', () => AlchTable.cursor = true);
+			}
+
+			AlchTable.cursorL = l('alchtableCursor');
+		};
+
+		let str = /*html*/`
+			<style>
+				#alchtableBG {
+					background: url("img/shadedBorders.png"), url("${dir}/bg.png");
+					background-size: 100% 100%, auto;
+					position: absolute;
+					left: 0px;
+					right: 0px;
+					top: 0px;
+					bottom: 16px;
+				}
+				
+				#alchtableDrag {
+					pointer-events: none;
+					position: absolute;
+					left: 0px;
+					top: 0px;
+					right: 0px;
+					bottom: 0px;
+					overflow: hidden;
+					z-index: 1000000001;
+				}
+				#alchtableCursor {
+					transition: transform 0.1s;
+					display: none;
+					pointer-events: none;
+					width: 40px;
+					height: 40px;
+					position: absolute;
+					background: url("${dir}/customIcons.png");
+				}
+
+				#alchtableContent {
+					position: relative;
+					box-sizing: border-box;
+					display: flex;
+					flex-flow: row wrap;
+					text-align: center;
+				}
+				.alchtableColumn {
+					flex: 0 1 280px;
+					height: 300px;
+					display: flex;
+				}
+				#alchtableColumn-0Box {
+					text-align: center;
+					margin: 4px;
+					padding: 4px 0px;
+					width: 100%;
+					display: flex;
+					flex-direction: column;
+				}
+				#alchtableColumn-1 {
+					box-shadow: 0px 0px 3px 3px rgba(255, 255, 255, 0.1);
+					background-color: rgba(255, 255, 255, 0.1);
+					flex-grow: 1;
+				}
+
+				#alchtableCrumbs {
+				}
+				#alchtableBlackButton {
+					margin: 4px;
+					width: 180px;
+					font-size: 16pt;
+					opacity: 0.5;
+				} #alchtableBlackButton.on {
+					background: url("img/shadedBordersRed.png");
+					background-size: 100% 100%, auto;
+					opacity: 1;
+				}
+
+				#alchtableWhiteBoxOuter {
+					flex: 1;
+					display: flex;
+				}
+				#alchtableWhiteBoxInner {
+					flex: 1;
+					align-self: center;
+					justify-self: center;
+				} 
+				#alchtableWhiteSliderBox {
+					width: 156px;
+					margin: 4px;
+					opacity: 0.5;
+					background-size: 100% 100%;
+				} #alchtableWhiteSliderBox.on {
+					opacity: 1;
+				}
+				#alchtableWhiteSliderInput {
+					background: #999;
+					font-size: 8pt;
+					border: none;
+					border-radius: 4px;
+					margin: -1px 0 1px;
+					width: 60px;
+				}
+				#alchtableWhiteSlider {
+					--alchtableWhiteSlider-background: #d66;
+					--alchtableWhiteSlider-thumb: #fbb;
+					clear: both;
+				}
+				#alchtableWhiteSlider::-webkit-slider-runnable-track {
+					background: url("${dir}/lines.svg"), var(--alchtableWhiteSlider-background);
+					background-size: 100% 100%
+				}
+				#alchtableWhiteSlider::-moz-range-track {
+					background: url("${dir}/lines.svg"), var(--alchtableWhiteSlider-background);
+					background-size: 100% 100%
+				}
+				#alchtableWhiteSlider::-webkit-slider-thumb {
+					background: var(--alchtableWhiteSlider-thumb);
+				}
+				#alchtableWhiteSlider::-moz-range-thumb {
+					background: var(--alchtableWhiteSlider-thumb);
+				}
+				#alchtableWhiteButton {
+					width: 50px;
+					margin: 3px auto;
+					opacity: 0.5;
+				} #alchtableWhiteButton.on {
+					opacity: 1;
+				}
+
+				#alchtableIngredientsTitle {
+					font-size: 12px;
+					width: 100%;
+					padding: 2px;
+					margin-top: 4px;
+					margin-bottom: -4px;
+				}
+				#alchtableIngredientsList {
+					display: flex;
+					justify-content: center;
+				}
+
+				.alchtableIngredient {
+					cursor: pointer;
+					width: 40px;
+					height: 40px;
+					opacity: 0.5;
+				} .alchtableIngredient.on {
+					opacity: 1;
+				}
+				.alchtableIngredientNumber {
+					position: absolute;
+					z-index: 1;
+					font-weight: bold;
+					background: #00000099;
+					border-radius: 4px;
+					text-align: center;
+				}
+				.alchtableIngredientIcon {
+					pointer-events: none;
+					transform: translate(0,0);
+					display: inline-block;
+					width: 40px;
+					height: 40px;
+					background: url("${dir}/customIcons.png");
+				}
+				.alchtableIngredient.on:hover .alchtableIngredientIcon {
+					animation: bounce 0.8s;
+					z-index: 1000000001;
+				}
+				.alchtableIngredient.on:active .alchtableIngredientIcon {
+					animation: pucker 0.2s;
+				}
+				.noFancy .alchtableIngredient:hover .alchtableIngredientIcon,.noFancy .alchtableIngredient:active .alchtableIngredientIcon {animation:none;}
+				.alchtableIngredient.selected .alchtableIngredientNumber:before {
+					pointer-events: none;
+					content: '';
+					display: inline;
+					position: absolute;
+					left: -10px;
+					top: -10px;
+					width: 60px;
+					height: 60px;
+					background: url("${Game.resPath}img/selectTarget.png");
+					animation: wobble 0.2s ease-out;
+					z-index:10;
+				}
+
+			</style>
+			<div id="alchtableBG"></div>
+			<div id="alchtableDrag"><div id="alchtableCursor" class="shadowFilter"></div></div>
+			<div id="alchtableContent">
+				<div id="alchtableColumn-0" class="alchtableColumn">
+					<div id="alchtableColumn-0Box" class="framed">
+						<div>
+							<div id="alchtableCrumbs" class="title"></div>
+							<a   id="alchtableBlackButton">DECONSTRUCT</a>
+						</div>
+						<div id="alchtableWhiteBoxOuter">
+							<div id="alchtableWhiteBoxInner">
+								<div id="alchtableWhiteSliderBox" class="sliderBox">
+									<input type="number" id="alchtableWhiteSliderInput" style="float:left;" class="smallFancyButton" value="100" min="100" max="100000" readonly="true">
+									<div id="alchtableWhiteSliderRightText" style="float:right;" class="smallFancyButton">-%</div>
+									<input type="range" id="alchtableWhiteSlider" class="slider" min="0" max="1" step="0.001" value="0" onmouseup="PlaySound('snd/tick.mp3');">
+								</div>
+								<a id="alchtableWhiteButton" class="smallFancyButton"></a>
+							</div>
+						</div>
+						<div>
+							<div id="alchtableIngredientsTitle" class="title">Ingredients</div>
+							<div class="line"></div>
+							<div id="alchtableIngredientsList"></div>
+						</div>
+					</div>
+				</div>
+				<div class="alchtableColumn" id="alchtableColumn-1">
+					Did you know?
+				</div>
+				<div class="alchtableColumn" id="alchtableColumn-2">
+					Ethan loves bingus!
+				</div>
+			</div>
+		`;
+		l('rowSpecial' + AlchTable.parent.id).innerHTML = str;
+		AddEvent(l('alchtableBlackButton'), 'click', AlchTable.callback.blackButton);
+		AddEvent(l('alchtableWhiteSliderInput'), 'change', AlchTable.callback.whiteInput);
+		AddEvent(l('alchtableWhiteSlider'), 'change', AlchTable.callback.whiteSlider);
+		AddEvent(l('alchtableWhiteSlider'), 'input', AlchTable.callback.whiteSlider);
+		AddEvent(l('alchtableWhiteButton'), 'click', AlchTable.callback.whiteButton);
+
+
+
+		AlchTable.logic = function () {
+			if (AlchTable.saveData.deconstructing) {
+				AlchTable.suckedPs = Game.cookiesPs * Game.cpsSucked;
+				AlchTable.ccps = (Math.trunc((Math.log10(AlchTable.suckedPs) / 3) * Game.eff('ccps') * 1000) / 1000) + Game.flatEff('ccps');
+				AlchTable.saveData.cookieCrumbs += AlchTable.ccps / Game.fps;
+			}
+		};
+
+		AlchTable.draw = function () {
+			if (AlchTable.saveData.deconstructing) AlchTable.update.crumbs();
+			if (AlchTable.cursorL) {
+				if (!AlchTable.cursor || AlchTable.ingredientSelected < 0) AlchTable.cursorL.style.display='none';
+				else {
+					const box = l('alchtableDrag').getBounds();
+					const x = Game.mouseX - box.left - 24;
+					const y = Game.mouseY - box.top - 32 + TopBarOffset;
+					const i = AlchTable.ingredientSelected;
+					AlchTable.cursorL.style.transform = `translate(${x}px, ${y}px)`;
+					AlchTable.cursorL.style.backgroundPosition = `${-40 * i}px 0px`;
+					AlchTable.cursorL.style.display = 'block';
+				}
+			}
+		};
+
+		AlchTable.check = function() {
+			AlchTable.calculateEffs();
+			Object.values(AlchTable.update)
+				.filter(f => typeof f === 'function')
+				.forEach(f => f());
+		};
+		Game.registerHook('check', AlchTable.check);
+
+		AlchTable.reset = function (hard) {
+			if (hard) AlchTable.saveData = {
+				cookieCrumbs: 0,
+				ingredients: [0, 0, 0, 0, 0, 0],
+				cookieParts: [[], [], []],
+			
+				deconstructing: false,
+				inputValue: 100,
+				selectedIngredients: [0, 0],
+				selectedParts: [0, 0, 0],
+				effectsOn: false,
+			
+				totalCookieCrumbs: 0,
+				totalIngredients: 0,
+				totalCookieParts: 0,
+				totalRecombs: 0,
+			};
+
+			AlchTable.check();
+		};
+		Game.registerHook('reset', AlchTable.reset);
+
+		AlchTable.save = function() {return ""};
+		AlchTable.load = function() {};
+		AlchTable.buildIngredients();
+		AlchTable.check();
 	},
 	save: function() {
 		const AlchTable = Game.Objects["Alchemy lab"]?.minigame;
