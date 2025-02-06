@@ -144,6 +144,8 @@ Game.registerMod("Alchemists Table Minigame", {
 		AlchTable.suckRate = 0.1;
 		AlchTable.ingredientMins = [0, 100, 316, 1000, 3160, 10000];
 		AlchTable.ingredientSelected = -1;
+		AlchTable.forgeSlot0 = -1;
+		AlchTable.forgeSlot1 = -1;
 		AlchTable.cursor = true;
 
 		
@@ -862,6 +864,19 @@ Game.registerMod("Alchemists Table Minigame", {
 						`;
 					}
 				}
+			},
+
+			forge: function () {
+				if (l('alchtableForge')) {
+					for (let i = 0; i < 2; i++) {
+						const me = l(`alchtableForgeSlot-${i}`)
+						if (!me) continue;
+						const ing = AlchTable[`forgeSlot${i}`];
+						me.innerHTML = /*html*/`
+							<div id="alchtableForgeSlotIcon-${i}" class="alchtableForgeSlotIcon shadowFilter ${ing >= 0 ? ' on' : ''}" style="background-position: ${-40 * ing}px 0px"></div>
+						`;
+					}
+				}
 			}
 		};
 
@@ -912,7 +927,8 @@ Game.registerMod("Alchemists Table Minigame", {
 				AlchTable.update.crumbs();
 				AlchTable.update.whiteInput();
 				AlchTable.update.ingredients();
-			}
+			},
+
 		};
 
 		
@@ -935,18 +951,30 @@ Game.registerMod("Alchemists Table Minigame", {
 			for (let i = 0; i < 6; i++) {
 				const me = AlchTable.ingredients[i];
 				me.l = l(`alchtableIngredient-${i}`);
-				AddEvent(me.l, 'click', function (me, i) {
+				AddEvent(me.l, 'click', function (i) {
 					return function () {
 						if (!AlchTable.saveData.ingredients[i] && !Game.sesame) return false;
 						if (AlchTable.ingredientSelected === i) AlchTable.ingredientSelected = -1;
 						else { 
 							AlchTable.ingredientSelected = i;
-							PlaySound('snd/toneTick.mp3');
 						}
 						AlchTable.update.ingredients();
-				}}(me, i));
+				}}(i));
 				AddEvent(me.l, 'mouseover', () => AlchTable.cursor = false);
 				AddEvent(me.l, 'mouseout', () => AlchTable.cursor = true);
+			}
+
+			for (let i = 0; i < 2; i++) {
+				const me = l(`alchtableForgeSlot-${i}`);
+				AddEvent(me, 'click', function (i) {
+					return function () {
+						if (AlchTable.ingredientSelected === AlchTable[`forgeSlot${i}`]) AlchTable[`forgeSlot${i}`] = -1;
+						else {
+							AlchTable[`forgeSlot${i}`] = AlchTable.ingredientSelected;
+							PlaySound('snd/toneTick.mp3');
+						}
+						AlchTable.update.forge();
+				}}(i));
 			}
 
 			AlchTable.cursorL = l('alchtableCursor');
@@ -1133,6 +1161,32 @@ Game.registerMod("Alchemists Table Minigame", {
 					z-index:10;
 				}
 
+				#alchtableForge {
+					display: flex;
+					justify-content: center;
+					width: 100%;
+					height: 40px;
+				}
+				.alchtableForgeSlot {
+					cursor: pointer;
+					width: 40px;
+					height: 40px;
+					background: url("${Game.resPath}img/gardenPlots.png");
+				}
+				.alchtableForgeSlot:hover {
+					animation: wobble 0.5s;
+				}
+				.noFancy .alchtableForgeSlot:hover {animation: none;}
+				.alchtableForgeSlotIcon {
+					opacity: 0;
+					width: 40px;
+					height: 40px;
+					background: url("${dir}/customIcons.png");
+				} .alchtableForgeSlotIcon.on {
+					opacity: 1;
+				}
+				.alchtableForgeSlot:hover .alchtableForgeSlotIcon {animation: pucker 0.3s;}
+				.noFancy .alchtableForgeSlot:hover .alchtableForgeSlotIcon {animation: none;}
 			</style>
 			<div id="alchtableBG"></div>
 			<div id="alchtableDrag"><div id="alchtableCursor" class="shadowFilter"></div></div>
@@ -1161,7 +1215,11 @@ Game.registerMod("Alchemists Table Minigame", {
 					</div>
 				</div>
 				<div class="alchtableColumn" id="alchtableColumn-1">
-					Did you know?
+					<div id="alchtableForge">
+						<div id="alchtableForgeSlot-0" class="alchtableForgeSlot"><div id="alchtableForgeSlotIcon-0" class="alchtableForgeSlotIcon"></div></div>
+						<a id="alchtableForgeButton" class="smallFancyButton">Foo</a>
+						<div id="alchtableForgeSlot-1" class="alchtableForgeSlot"><div id="alchtableForgeSlotIcon-1" class="alchtableForgeSlotIcon"></div></div>
+					</div>
 				</div>
 				<div class="alchtableColumn" id="alchtableColumn-2">
 					Ethan loves bingus!
