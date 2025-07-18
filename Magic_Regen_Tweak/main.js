@@ -1,7 +1,7 @@
 Game.registerMod("Magic Regen Tweak", {
 	init: function() {
 		let MOD = this;
-		const dir = MOD.dir;
+		const dir = "https://flethan.github.io/Magic_Regen_Tweak";
 		function replaceGrimoire() {
 			if (!Game.Objects['Wizard tower'].minigameLoaded) return;
 			let M = Game.Objects['Wizard tower'].minigame;

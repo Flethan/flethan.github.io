@@ -15,7 +15,7 @@ Game.registerMod("Alchemists Table Minigame", {
         AlchTable.parent.minigameName = AlchTable.name;
         AlchTable.parent.minigameLoaded = true;
         AlchTable.parent.minigameUrl = true;
-        const dir = this.dir;
+        const dir = "https://flethan.github.io/AlchTable";
         new Game.buffType('ice cream', function (time, pow) {
             return {
                 name: 'Ice Cream',
