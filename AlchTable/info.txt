@@ -1,0 +1,12 @@
+{
+	"Name": "Alchemist's Table Minigame",
+	"ID": "Alchemists Table Minigame",
+	"Author": "Flethan",
+	"Description": "Adds a minigame for the Alchemy Lab. Use alchemy to turn cookies into your Magnum Doughus!",
+	"ModVersion": 0.1,
+	"GameVersion": 2.052,
+	"Date": "02/04/2024",
+	"Dependencies": [],
+	"Disabled": 1,
+	"AllowSteamAchievs": 1
+}

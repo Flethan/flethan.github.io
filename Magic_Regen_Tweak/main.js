@@ -1,69 +1,124 @@
 Game.registerMod("Magic Regen Tweak", {
 	init: function() {
 		let MOD = this;
+		const dir = MOD.dir;
 		function replaceGrimoire() {
 			if (!Game.Objects['Wizard tower'].minigameLoaded) return;
 			let M = Game.Objects['Wizard tower'].minigame;
-			if (!Game.Objects['Wizard tower']?.minigame?.spells['conjure baked goods']) return;
-	
-			M.spells['conjure baked goods'].costPercent = 0.2;
-	
-			M.logic = function () {
-				if (Game.T % 5 == 0) { M.computeMagicM(); }
-				M.magicPS = (M.magicM * Math.pow(M.magic + 5.5, 4 / 3)) / (120000 * (0.5 * M.magicM + M.magic + 8.55));
-				M.magic += M.magicPS;
-				M.magic = Math.min(M.magic, M.magicM);
-				if (Game.T % 5 == 0) {
-					for (let i in M.spells) {
-						let me = M.spells[i];
-						let cost = M.getSpellCost(me);
-						l('grimoirePrice' + me.id).innerHTML = Beautify(cost);
-						if (M.magic < cost) l('grimoireSpell' + me.id).className = 'grimoireSpell titleFont';
-						else l('grimoireSpell' + me.id).className = 'grimoireSpell titleFont ready';
-					}
-				}
-			};
+			if (M?.spells['conjure baked goods']) M.spells['conjure baked goods'].costMin = 3;
+			if (M?.spells['conjure baked goods']) M.spells['conjure baked goods'].costPercent = 0.2;
+			if (M?.spells['diminish ineptitude']) M.spells['diminish ineptitude'].costMin = 6;
+			if (M?.spells['diminish ineptitude']) M.spells['diminish ineptitude'].costPercent = 0.2;
+			if (M?.spells['stretch time']) M.spells['stretch time'].costMin = 10;
+			if (M?.spells['stretch time']) M.spells['stretch time'].costPercent = 0.3;
+			if (M?.spells['haggler\'s charm']) M.spells['haggler\'s charm'].costMin = 11;
+			if (M?.spells['haggler\'s charm']) M.spells['haggler\'s charm'].costPercent = 0.2;
+			if (M?.spells['summon crafty pixies']) M.spells['summon crafty pixies'].costMin = 12;
+			if (M?.spells['summon crafty pixies']) M.spells['summon crafty pixies'].costPercent = 0.3;
+			if (M?.spells['hand of fate']) M.spells['hand of fate'].costMin = 15;
+			if (M?.spells['hand of fate']) M.spells['hand of fate'].costPercent = 0.6;
+			if (M?.spells['resurrect abomination']) M.spells['resurrect abomination'].costMin = 25;
+			if (M?.spells['resurrect abomination']) M.spells['resurrect abomination'].costPercent = 0.3;
+			if (M?.spells['spontaneous edifice']) M.spells['spontaneous edifice'].costMin = 80;
+			if (M?.spells['spontaneous edifice']) M.spells['spontaneous edifice'].costPercent = 0.85;
+			if (M?.spells['gambler\'s fever dream']) M.spells['gambler\'s fever dream'].costMin = 10;
+			if (M?.spells['gambler\'s fever dream']) M.spells['gambler\'s fever dream'].cost = 5;
+			if (M?.spells['gambler\'s fever dream']) M.spells['gambler\'s fever dream'].costPercent = 0;
 
-			M.spellTooltip = function (id) {
-				return function(){
-					var me=M.spellsById[id];
-					me.icon=me.icon||[28,12];
-					var cost=Beautify(M.getSpellCost(me));
-					var costBreakdown=M.getSpellCostBreakdown(me);
-					if (cost!=costBreakdown) costBreakdown=' <small>('+costBreakdown+')</small>'; else costBreakdown='';
-					var backfire=M.getFailChance(me);
-					var str='<div style="padding:8px 4px;min-width:350px;" id="tooltipSpell">'+
-					'<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position:'+(-me.icon[0]*48)+'px '+(-me.icon[1]*48)+'px;"></div>'+
-					'<div class="name">'+me.name+'</div>'+
-					'<div>'+loc("Magic cost:")+' <b style="color:#'+(cost<=M.magic?'6f6':'f66')+';">'+cost+'</b>'+costBreakdown+'</div>'+
-					(me.fail?('<div><small>'+loc("Chance to backfire:")+' <b style="color:#f66">'+Math.ceil(100*backfire)+'%</b></small></div>'):'')+
-					'<div class="line"></div><div class="description"><b>'+loc("Effect:")+'</b> <span class="green">'+(me.descFunc?me.descFunc():me.desc)+'</span>'+(me.failDesc?('<div style="height:8px;"></div><b>'+loc("Backfire:")+'</b> <span class="red">'+me.failDesc+'</span>'):'')+'</div></div>';
-					if (me.name === "Gambler's Fever Dream") return str;
-					return str.replace("</small></div><div><small>",
-							"</small></div><div><small>" +
-							MOD.getSpellRegenTimeString(me) +
-							"</small></div><div><small>")
-						.replace("margin-top:-8px",
-							"margin-top:0px");
-				};
+			eval("M.logic="+M.logic.toString()
+				.replace(`M.magicPS=Math.max(0.002,Math.pow(M.magic/Math.max(M.magicM,100),0.5))*0.002;`,
+					`const A = 1350;const B = 0.025;const Q = 0.0015;M.magicPS = Math.max(M.magic**(B + 1) / A, Q) / Game.fps;`)
+				.replace(`l('grimoirePrice'+me.id).innerHTML=Beautify(cost);`,
+					`l('grimoirePrice'+me.id).innerHTML=Beautify(cost,1);`)
+				.replace(`if (M.magic<cost) l('grimoireSpell'+me.id).className='grimoireSpell titleFont';`,
+					`if (M.magic<me.costMin) {
+						l('grimoireSpell'+me.id).className='grimoireSpell titleFont';
+					}`)
+			);
+
+			if (M?.spells['gambler\'s fever dream']) {
+				let F = M?.spells['gambler\'s fever dream']
+				eval("F.win="+F.win.toString()
+					.replace(`(M.magic-selfCost)>=M.getSpellCost(M.spells[i])*0.5)`,
+						`(M.magic-selfCost)>=M.spells[i].costMin)`)
+				);	
+			}
+
+			eval("M.castSpell="+M.castSpell.toString()
+				.replace(`if (M.magic<cost) return false;`,
+					`if (M.magic<spell.costMin) return false;`)
+			);
+
+			//eval("M.refillTooltip="+M.refillTooltip.toString()
+			//	.replace(`loc("Click to refill <b>%1 units</b> of your magic meter for %2.",[100,'<span class="price lump">'+loc("%1 sugar lump",LBeautify(1))+'</span>'])`,
+			//		`loc("Click to refill <b>%1 units</b> of your magic meter for %2.",[100,'<span class="price lump">'+loc("%1 sugar lump",LBeautify(1))+'</span>']).replace("<b>100 units</b> of ","")`)
+			//);
+
+			eval("M.getSpellCost="+M.getSpellCost.toString()
+				.replace(`if (spell.costPercent) out+=M.magicM*spell.costPercent`,
+					`if (spell.costPercent) out=M.magic*spell.costPercent; if (spell.cost) out=spell.cost;`)
+				.replace(`return Math.floor(out);`,
+					`return Math.round(out*10)/10;`)
+			);
+			
+			eval("M.getSpellCostBreakdown="+M.getSpellCostBreakdown.toString()
+				.replace(`if (spell.costPercent) str+=loc("%1 magic",Beautify(spell.costMin))+' '+loc("+%1% of max magic",Beautify(Math.ceil(spell.costPercent*100)));`, 
+					`if (spell.costPercent) str+=Beautify(Math.ceil(spell.costPercent*100))+"% of current magic";else if (spell.cost) return spell.cost;`)
+			);
+
+			eval("M.spellTooltip="+M.spellTooltip.toString()
+				.replace(`return str;`,
+					`str = str.replace("</small></div><div><small>",
+								"</small></div>" +
+								MOD.getSpellMinCostString(me) +
+								MOD.getSpellRegenTimeString(me) +
+								"<div><small>")
+							.replace("margin-top:-8px",
+								"margin-top:0px");
+					return str;`)
+				.replace(`var cost=Beautify(M.getSpellCost(me));`,
+					`var cost=Beautify(M.getSpellCost(me),1);`)
+				.replace(`(cost<=M.magic?'6f6':'f66')`,
+					`(M.magic>=me.costMin?'6f6':'f66')`)
+			);
+
+			M.secondsUtil = function (CurM, MaxM) {
+				const A = 1350;
+				const B = 0.025;
+				const Q = 0.0015;
+				let secondsUntil = 0;
+				if (MaxM < 2) {
+					secondsUntil = (MaxM - CurM) / Q;
+				} else {
+					if (CurM < 2) {
+						secondsUntil = (2 - CurM) / Q;
+						CurM = 2;
+					}
+					secondsUntil += -(A / B) * (MaxM**(-B) - CurM**(-B));
+				}
+				return secondsUntil;
 			};
 
 			Game.registerHook('draw', MOD.updateGrimoireTime);
-			Game.removeHook('check', this);
-			Game.Notify(`Magic Regen Tweak loaded.`,`Arrived precisely on time!`,[0,0,"https://flethan.github.io/Magic_Regen_Tweak/icon.png"]);
+			Game.removeHook('logic', this);
+			Game.Notify(`Magic Regen Tweak loaded.`,`Arrived precisely on time!`,[0,0,dir+'/icon.png']);
 		}
-		Game.registerHook('check', replaceGrimoire);
+		Game.registerHook('logic', replaceGrimoire);
 	},
+
 	updateGrimoireTime: function () {
 		if (Game.drawT % 5 == 0) {
 			let M = Game.Objects['Wizard tower'].minigame;
 
-			const secondsUntil = Math.ceil((6000 * (M.magicM - M.magic)) / (M.magicM * Math.cbrt(M.magic + 5.7)));
+			secondsUntil = M.secondsUtil(M.magic, M.magicM);
 			const justSeconds = secondsUntil % 60;
-			const justMinutes = Math.floor(secondsUntil / 60)
+			const minutesUntil = Math.floor(secondsUntil / 60);
+			const justMinutes = minutesUntil % 60;
+			const justHours = Math.floor(minutesUntil / 60);
 
 			let message = "";
 			if (secondsUntil) {
+				if (justHours) message += loc("%1 hour", LBeautify(justHours)) + ", ";
 				if (justMinutes) message += loc("%1 minute", LBeautify(justMinutes)) + ", ";
 				message += loc("%1 second", LBeautify(justSeconds)) + loc(" until your magic is full.")
 			} else message += loc("Your magic is full.");
@@ -73,27 +128,37 @@ Game.registerMod("Magic Regen Tweak", {
 		}
 	},
 	getSpellRegenTimeString: function (spell) {
+		if (!spell.costPercent) return "";
+
 		let M = Game.Objects["Wizard tower"].minigame;
 
-		const spellCost = M.getSpellCost(spell);
-		if (spellCost > M.magicM) return `You need ${spellCost - M.magicM} more max magic to cast this spell.`;
+		if (M.magicM < spell.costMin) return `Insufficient max magic to cast this spell.`;
 
 		let message = "";
-		let secondsUntil = (6000 * (M.magicM - M.magic)) / (M.magicM * Math.cbrt(M.magic + 5.7));
-		const magicAfter = M.magic - spellCost;
+		let secondsUntil = 0;
 
-		if (magicAfter < 0) {
-			secondsUntil -= (6000 * (M.magicM - (M.magic - magicAfter))) / (M.magicM * Math.cbrt((M.magic - magicAfter) + 5.7));
+		if (M.magic < spell.costMin) {
+			secondsUntil = M.secondsUtil(M.magic, M.magicM) - M.secondsUtil(spell.costMin, M.magicM);
 			message = loc(" until you can cast this spell.");
 		} else {
-			secondsUntil = (6000 * (M.magicM - magicAfter)) / (M.magicM * Math.cbrt(magicAfter + 5.7)) - secondsUntil;
+			const magicAfter = M.magic - M.getSpellCost(spell);
+			secondsUntil = M.secondsUtil(magicAfter, M.magicM) - M.secondsUtil(M.magic, M.magicM);
 			message = loc(" to regen this spell 's cost after casting it.");
 		}
 
 		secondsUntil = Math.ceil(secondsUntil);
 		const justSeconds = secondsUntil % 60;
-		const justMinutes = Math.floor(secondsUntil / 60);
+		const minutesUntil = Math.floor(secondsUntil / 60);
+		const justMinutes = minutesUntil % 60;
+		const justHours = Math.floor(minutesUntil / 60);
 
-		return (justMinutes ? loc("%1 minute", LBeautify(justMinutes)) + ", " : "") + loc("%1 second", LBeautify(justSeconds)) + message;
+		return "<div><small>" + (justHours ? loc("%1 hour", LBeautify(justHours)) + ", " : "") + (justMinutes ? loc("%1 minute", LBeautify(justMinutes)) + ", " : "") + loc("%1 second", LBeautify(justSeconds)) + message + "</small></div>";
+	},
+	getSpellMinCostString: function (spell) {
+		let M = Game.Objects["Wizard tower"].minigame;
+
+		const message = `<div>At least <b ${M.magic < spell.costMin ? 'style="color:#f33"' : ''}>${spell.costMin}</b> magic required to cast this spell.</div>`;
+
+		return message;
 	}
 })
