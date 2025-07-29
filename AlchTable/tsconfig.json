@@ -2,6 +2,16 @@
   "compilerOptions": {
     "target": "ES2021",
     "module": "CommonJS",
-    "sourceMap": false
+    "sourceMap": false,
+    "strict": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
   },
 }
