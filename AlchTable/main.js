@@ -20,7 +20,7 @@ Game.registerMod("Alchemists Table Minigame", {
             throw new Error("Alchemist's Table prevented from loading by already present Alchemy Lab minigame.");
         else
             Game.Notify(`Alchemist's Table Minigame loaded!`, `Now with extra clickable stuff!`, [16, 5]);
-        const dir = "https://flethan.github.io/Magic_Regen_Tweak";
+        const dir = "https://flethan.github.io/Magic_Regen_Tweak/docs/assets";
         Game.Objects['Alchemy lab'].minigameName = "Alchemist's Table";
         Game.Objects['Alchemy lab'].minigameLoaded = true;
         Game.Objects['Alchemy lab'].minigameUrl = true;
