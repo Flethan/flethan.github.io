@@ -7,6 +7,7 @@ type HexChar  = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'A' 
 				'a' | 'b' | 'c' | 'd' | 'e' | 'f'
 type HexColor = `#${HexChar}${HexChar}${HexChar}`
 type IconString = `${number}px ${number}px`
+type HalfIconString = `${number}px`
 
 
 type UnitID = 'number' | 'ceil' | 'times' | 'percent' | 'permille' | 'permyriad' | 'million' | 'hour'
@@ -66,7 +67,7 @@ type CookiePartTypeID = 'dough' | 'spread' | 'bits'
 interface CookiePartType {
 	name: string
 	index: number
-	image: string
+	icon_x: HalfIconString
 }
 type CookiePartTypeList = Record<CookiePartTypeID, CookiePartType>
 
@@ -110,8 +111,8 @@ interface WithNumber {max: number, unit: UnitID, flat?: true, inverse?: true}
 interface WithoutNumber {max?: never, unit?: never, flat?: never, inverse?: never}
 interface EffectAffix {
 	str: string
-	effect?: (effs: EffsList, quality: number) => void
-	qualityEffect?: (cookiePart: CookiePartData, meQuality: number) => CookiePartData
+	effect?(effs: EffsList, quality: number): void
+	qualityEffect?(cookiePart: CookiePartData, meQuality: number): CookiePartData
 	flags?: FlagID[]
 }
 type ComplexAffix = EffectAffix & (WithNumber | WithoutNumber)
@@ -160,7 +161,7 @@ interface SaveData {
 
 	deconstructing: boolean
 	inputValue: number
-	readonly selectedParts: Partial<Record<CookiePartTypeID, number>>
+	readonly enabledParts: Partial<Record<CookiePartTypeID, number>>
 
 	totalCookieCrumbs: number
 	totalIngredients: number
@@ -245,7 +246,7 @@ interface AlchTable {
 //
 //	deconstructing: false,
 //	inputValue: 100,
-//	selectedParts: {},
+//	enabledParts: {},
 //
 //	totalCookieCrumbs: 0,
 //	totalIngredients: 0,
@@ -276,7 +277,7 @@ saveData: {
 	cookieParts: {},
 	deconstructing: false,
 	inputValue: 100,
-	selectedParts: {},
+	enabledParts: {},
 
 	totalCookieCrumbs: 0,
 	totalIngredients: 0,
@@ -474,17 +475,17 @@ cookiePartTypes: {
 	spread: {
 		name: "Spread",
 		index: 20,
-		image: 'manganese.png'
+		icon_x: '-192px'
 	},
 	dough: {
 		name: "Dough",
 		index: 0,
-		image: 'zinc.png'
+		icon_x: '-144px'
 	},
 	bits: {
 		name: "Bits",
 		index: 10,
-		image: 'iron.png'
+		icon_x: '-240px'
 	},
 },
 cookieParts: {
@@ -757,7 +758,7 @@ cookieSuffixes: {
 		5: {
 			str: '+5% CpS, @.',
 			unit: 'times',
-			effect: (effs, q) => {effs['cps'] = (effs['cps'] ?? 1) * (1.05**(this.max * q))},
+			effect(effs, q) {effs['cps'] = (effs['cps'] ?? 1) * (1.05**(this.max * q))},
 			max: 5,
 			weight: 5
 		},
@@ -1187,12 +1188,12 @@ calculateEffs: function () {
 
 	const parts: Immutable<CookiePartData>[] = [];
 	AlchTable.getSortedCookiePartTypes().forEach(i => {
-		if (typeof AlchTable.saveData.selectedParts[i] === 'number'
-			&& AlchTable.saveData.selectedParts[i] >= 0
+		if (typeof AlchTable.saveData.enabledParts[i] === 'number'
+			&& AlchTable.saveData.enabledParts[i] >= 0
 			&& AlchTable.saveData.cookieParts[i]
-			&& AlchTable.saveData.cookieParts[i][AlchTable.saveData.selectedParts[i]]
+			&& AlchTable.saveData.cookieParts[i][AlchTable.saveData.enabledParts[i]]
 			) {
-			parts.push(AlchTable.saveData.cookieParts[i][AlchTable.saveData.selectedParts[i]]!); // !
+			parts.push(AlchTable.saveData.cookieParts[i][AlchTable.saveData.enabledParts[i]]!); // !
 		}});
 
 	if (parts.length) {
@@ -1347,7 +1348,7 @@ update: {
 					//TODO!!!
 					const me = l(`alchtableCookieSlotIcon-${partId}`)
 					if(!me) return;
-					const selected = AlchTable.saveData.selectedParts[partId] ?? -1;
+					const selected = AlchTable.saveData.enabledParts[partId] ?? -1;
 					const cookiePartData = AlchTable.saveData.cookieParts[partId]?.[selected];
 					if (selected >= 0 && cookiePartData) {
 						me.classList.add('on')
@@ -1377,6 +1378,9 @@ update: {
 
 						if (AlchTable.selected && AlchTable.selected[0] === i && AlchTable.selected[1] === j) part.classList.add('selected');
 						else part.classList.remove('selected');
+						
+						if (AlchTable.saveData.enabledParts[i] === j) part.classList.add('enabled');
+						else part.classList.remove('enabled');
 
 						if (j >= (AlchTable.saveData.cookieParts[i]?.length ?? 0)) part.classList.remove('on');
 						else {
@@ -1477,6 +1481,31 @@ callback: {
 					AlchTable.updateAll();
 				}
 			},
+
+			trashButton: function () {
+				if (!AlchTable.selected || !AlchTable.selected[0]) return;
+				const selectedPartData = AlchTable.saveData.cookieParts[AlchTable.selected[0]]?.[AlchTable.selected[1]];
+				if (!selectedPartData) return;
+				PlaySound('snd/tick.mp3');
+				function func () {
+					if (!AlchTable.selected || !AlchTable.selected[0]) return;
+					const selectedPartData = AlchTable.saveData.cookieParts[AlchTable.selected[0]]?.[AlchTable.selected[1]];
+					if (!selectedPartData) return;
+					const enabledPart = AlchTable.saveData.enabledParts[AlchTable.selected[0]] ?? -1;
+					AlchTable.saveData.cookieParts[AlchTable.selected[0]]!.splice(AlchTable.selected[1], 1);
+					if (enabledPart === AlchTable.selected[1]) AlchTable.saveData.enabledParts[AlchTable.selected[0]] = -1;
+					else if (enabledPart > AlchTable.selected[1]) AlchTable.saveData.enabledParts[AlchTable.selected[0]] = enabledPart - 1;
+					AlchTable.selected = false;
+					AlchTable.check();
+				}
+				Game.promptConfirmFunc = func;
+				Game.Prompt(/*html*/`
+						<div class="alchtableThingIcon" style="background-position:${AlchTable.cookieParts[selectedPartData[0]].icon};float:left;margin-left:-8px;margin-top:-8px;"></div>
+						<div style="margin:16px 8px;">Destroy the cookie part?</div>
+					`,
+					[[loc("Yes"),'Game.promptConfirmFunc();Game.promptConfirmFunc=0;Game.ClosePrompt();'],loc("No")]);
+					
+			}
 },
 rebuild: function () {
 			const list = l('alchtableIngredientsList');
@@ -1543,8 +1572,8 @@ rebuild: function () {
 			if (cookieBox) {
 				let str = /*html*/`<div id="alchtableCookieInfo" style="position:absolute;background-image:${Array(cookiePartTypeIds.length).fill(`url('${dir}/customIcons.png')`).join(',')};" ${Game.getDynamicTooltip(`Game.Objects['Alchemy lab'].minigame.tooltip.cookie()`,'this')}></div>`
 				cookiePartTypeIds.forEach((v, i) => {
-					const pos = `${-Math.round(100*Math.sin(Math.PI*2*i/cookiePartTypeIds.length))}px, ${-Math.round(100*Math.cos(Math.PI*2*i/cookiePartTypeIds.length))}px`;
-					str += /*html*/`<div id="alchtableCookieSlot-${v}"  style="position:absolute;background-image:url('${dir + '/' + AlchTable.cookiePartTypes[v].image}');transform: translate(${pos})" class="alchtableSlot"><div id="alchtableCookieSlotIcon-${v}"  class="alchtableSlotIcon"></div></div>`;
+					const pos = `${-Math.round(96*Math.sin(Math.PI*2*i/cookiePartTypeIds.length))}px, ${-Math.round(96*Math.cos(Math.PI*2*i/cookiePartTypeIds.length))}px`;
+					str += /*html*/`<div id="alchtableCookieSlot-${v}"  style="position:absolute;background-position-x:${AlchTable.cookiePartTypes[v].icon_x};transform: translate(${pos})" class="alchtableSlot"><div id="alchtableCookieSlotIcon-${v}"  class="alchtableSlotIcon"></div></div>`;
 				});
 //font-size: 24px;
 //position: absolute;
@@ -1559,10 +1588,10 @@ rebuild: function () {
 					if (!slotL) return;
 					AddEvent(slotL, 'click', function (v) {
 						return function () {
-							if (!AlchTable.selected) AlchTable.saveData.selectedParts[v] = -1;
+							if (!AlchTable.selected) AlchTable.saveData.enabledParts[v] = -1;
 							else if (!AlchTable.selected[0]) return;
 							else {
-								AlchTable.saveData.selectedParts[AlchTable.selected[0]] = AlchTable.selected[1];
+								AlchTable.saveData.enabledParts[AlchTable.selected[0]] = AlchTable.selected[1];
 								AlchTable.selected = false;
 							}
 							PlaySound('snd/toneTick.mp3');
@@ -1827,7 +1856,7 @@ tooltip: {
 				return function() {
 					const partData = AlchTable.saveData.cookieParts[type]?.[number];
 					if (!partData) return "";
-					const isSelected = AlchTable.saveData.selectedParts[type] === number;
+					const isSelected = AlchTable.saveData.enabledParts[type] === number;
 					const partInfo = AlchTable.cookieParts[partData[0]];
 					const combo = AlchTable.getSortedIngredients().filter((v) => partInfo.combo.includes(v));
 					if (combo.length === 1) combo.push(combo[0]!);
@@ -1924,7 +1953,7 @@ reset: function (hard) {
 			//
 			//	deconstructing: false,
 			//	inputValue: 100,
-			//	selectedParts: {'dough': -1, 'spread': -1, 'bits': -1},
+			//	enabledParts: {'dough': -1, 'spread': -1, 'bits': -1},
 			//
 			//	totalCookieCrumbs: 0,
 			//	totalIngredients: 0,
@@ -2131,20 +2160,6 @@ load: function() {},
 					background: url("${Game.resPath}img/selectTarget.png");
 					animation: pucker 0.2s;
 				}
-				.alchtableThding.selected:before {
-					pointer-events: none;
-					content: '';
-					background: url("img/shine.png");
-					background-size: 60px;
-					opacity: 0.5;
-					display: block;
-					position: absolute;
-					top: -10px;
-					left: -10px;
-					width: 60px;
-					height: 60px;
-					animation: loadSpin 30s linear infinite;
-				}
 				.alchtableThingIcon {
 					pointer-events: none;
 					position: absolute;
@@ -2179,6 +2194,19 @@ load: function() {},
 					display: none;
 				} .alchtablePart.on {
 					display: block;
+				} .alchtablePart.enabled:before {
+					pointer-events: none;
+					content: '';
+					background: url("img/shine.png");
+					background-size: 60px;
+					opacity: 0.25;
+					display: block;
+					position: absolute;
+					top: -10px;
+					left: -10px;
+					width: 60px;
+					height: 60px;
+					animation: loadSpin 30s linear infinite;
 				}
 
 				.alchtableCenterBox {
@@ -2192,7 +2220,11 @@ load: function() {},
 					width: 40px;
 					height: 40px;
 					padding: 4px;
-					background-image: url("${dir}/slot.png");
+					background-position-y: 0px;
+					background-image: url("${dir}/slotIcons.png");
+				}
+				.alchtableSlot:hover {
+					background-position-y: 48px;
 				}
 				.alchtableSlotIcon {
 					pointer-events: none;
@@ -2222,6 +2254,21 @@ load: function() {},
 				#alchtableCookieInfo.on {
 					opacity: 1;
 				}
+				#alchtableCookieInfof.on:before {
+					pointer-events: none;
+					content: '';
+					background: url("img/shine.png");
+					background-size: 50px;
+					opacity: 0.5;
+					display: block;
+					position: absolute;
+					top: -5px;
+					left: -5px;
+					width: 50px;
+					height: 50px;
+					animation: loadSpin 30s linear infinite;
+					
+				}
 			</style>
 			<div id="alchtableBG"></div>
 			<div id="alchtableDrag"><div id="alchtableCursor" class="shadowFilter"></div></div>
@@ -2246,12 +2293,15 @@ load: function() {},
 					</div>
 				</div>
 				<div id="alchtableColumn-1" class="alchtableColumn" style="flex-grow: 1;justify-content: space-around;">
-					<div class="alchtableCenterBox">
-						<div id="alchtableForgeSlot-0" class="alchtableSlot" style="background-image:url('${dir}/mercury0.png'"><div id="alchtableForgeSlotIcon-0" class="alchtableSlotIcon"></div></div>
-						<a id="alchtableForgeButton" class="smallFancyButton" style="width:40px;margin:0px 8px;" ${Game.getDynamicTooltip(`Game.Objects['Alchemy lab'].minigame.tooltip.forge()`,'this')}>
-							<div>Forge</div>
-						</a>
-						<div id="alchtableForgeSlot-1" class="alchtableSlot" style="background-image:url('${dir}/mercury1.png'"><div id="alchtableForgeSlotIcon-1" class="alchtableSlotIcon"></div></div>
+					<div class="alchtableCenterBox" style="width:100%;justify-content:space-evenly;">
+						<div class="alchtableCenterBox">
+							<div id="alchtableForgeSlot-0" class="alchtableSlot" style="background-position-x:-48px"><div id="alchtableForgeSlotIcon-0" class="alchtableSlotIcon"></div></div>
+							<a id="alchtableForgeButton" class="smallFancyButton" style="width:40px;margin:0px 8px;" ${Game.getDynamicTooltip(`Game.Objects['Alchemy lab'].minigame.tooltip.forge()`,'this')}>
+								<div>Forge</div>
+							</a>
+							<div id="alchtableForgeSlot-1" class="alchtableSlot" style="background-position-x:-96px"><div id="alchtableForgeSlotIcon-1" class="alchtableSlotIcon"></div></div>
+						</div>
+						<div id="alchtableTrashButton" class="alchtableSlot" style="background-position:0px -48px"></div>
 					</div>
 					<div id="alchtableCookieBox" class="alchtableCenterBox" style="width:208px;height:208px;background-image:url('${dir}/sigil.png')"></div>
 				</div>
@@ -2265,6 +2315,7 @@ load: function() {},
 		AddEvent(l('alchtableWhiteSlider'), 'input', AlchTable.callback.whiteSlider);
 		AddEvent(l('alchtableWhiteButton'), 'click', AlchTable.callback.whiteButton);
 		AddEvent(l('alchtableForgeButton'), 'click', AlchTable.callback.forgeButton);
+		AddEvent(l('alchtableTrashButton'), 'click', AlchTable.callback.trashButton);
 		Game.registerHook('check', AlchTable.check);
 		Game.registerHook('reset', AlchTable.reset);
 
@@ -2291,7 +2342,7 @@ load: function() {},
 			AlchTable.saveData.ingredients[ingredient] = typeof savedData.ingredients?.[ingredient] === 'number' ? savedData.ingredients?.[ingredient] : 0;
 		});
 		AlchTable.getSortedCookiePartTypes().forEach(cookiePart => {
-			AlchTable.saveData.selectedParts[cookiePart] = typeof savedData.selectedParts?.[cookiePart] === 'number' ? savedData.selectedParts?.[cookiePart] : -1;
+			AlchTable.saveData.enabledParts[cookiePart] = typeof savedData.enabledParts?.[cookiePart] === 'number' ? savedData.enabledParts?.[cookiePart] : -1;
 			AlchTable.saveData.cookieParts[cookiePart] = Array.isArray(savedData.cookieParts?.[cookiePart]) ? savedData.cookieParts?.[cookiePart] : [];
 		});
 	},
