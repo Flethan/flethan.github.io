@@ -1,4 +1,4 @@
-//import {Game, loc, Beautify, Math, PlaySound, l, AddEvent, TopBarOffset} from "../../../src/main.js"
+import {Game, loc, Beautify, Math, PlaySound, l, AddEvent, TopBarOffset} from "../../../src/main.js"
 
 type Immutable<T> = {
 	readonly [K in keyof T]: T[K] extends object ? (T[K] extends Function ? T[K] : Immutable<T[K]>) : T[K]
@@ -106,6 +106,8 @@ type CookiePartList = Record<CookiePartID, CookiePart>
 interface SimpleAffix {
 	effect: EffectID
 	max: number
+	hint?: string
+	combinateEffect?(parts: CookiePartData[], newPart: CookiePartData): void
 }
 interface WithNumber {max: number, unit: UnitID, flat?: true, inverse?: true}
 interface WithoutNumber {max?: never, unit?: never, flat?: never, inverse?: never}
@@ -211,7 +213,8 @@ interface AlchTable {
 	readonly getSortedIngredients: () => IngredientID[]
 	readonly getSortedCookiePartTypes: () => CookiePartTypeID[]
 	readonly getIcon: (selected: Selected) => IconString
-	readonly formatAffix: (effect: Affix, q?: number) => [string, string]
+	readonly formatAffix: (effect: Affix, q?: number) => string
+	readonly formatHint: (effect: Affix, q?: number) => string
 	readonly formatIngredient: (ingredientNames: SuffixTypeID | SuffixTypeID[], text?: string) => string
 	readonly comboLookup: (ingredient0: IngredientID, ingredient1?: IngredientID) => CookiePartID | null
 	readonly nextCookiePart: (partId: CookiePartID, peak?: true) => CookiePartData
@@ -957,90 +960,129 @@ cookieSuffixes: {
 		0: {
 			str: 'Switching dragon auras is free.',
 			weight: 5,
+			hint: 'No aura',
 		},
 		1: {
 			str: '+1 cat amenity.',
 			weight: 5,
+			hint: 'Breath of Milk',
 		},
 		2: {
 			str: 'Clicking reduces the cooldown of swapping cookie parts by 20 seconds.',
 			weight: 5,
+			hint: 'Dragon Cursor',
 		},
 		3: {
 			str: 'Research is 100 times as fast.',
 			weight: 5,
+			hint: 'Elder Battalion',
 		},
 		4: {
 			str: '+60% chance of collecting seeds automatically when plants expire.',
 			weight: 5,
+			hint: 'Reaper of Fields',
 		},
 		5: {
 			str: '+300% mine CpS.',
 			weight: 5,
+			hint: 'Earth Shatterer',
 		},
 		6: {
 			str: 'Constructing an ingredient has a 10% chance to double the product.',
 			weight: 5,
+			hint: 'Master of the Armory',
 		},
 		7: {
 			str: '+50 brokers.',
 			weight: 5,
+			hint: 'Fierce Hoarder',
 		},
 		8: {
 			str: 'Slotting a spirit has a 25% chance to not consume a worship swap.',
 			weight: 5,
+			hint: 'Dragon God',
 		},
 		9: {
 			str: 'Gambler\'s Fever Dream casts with the normal chance of backfiring.',
 			weight: 5,
+			hint: 'Arcane Aura',
 		},
 		10: {
 			str: 'Your shipments each have a small chance of delivering an ingredient each second.',
 			weight: 5,
+			hint: 'Dragonflight',
 		},
 		11: {
 			str: '+2 cookie crumbs per second.',
 			weight: 5,
+			hint: 'Ancestral Metamorphosis',
 		},
 		12: {
 			str: 'Harvesting a sugar lump gives you a random building you could afford for free.',
 			weight: 5,
+			hint: 'Unholy Dominion',
 		},
 		13: {
 			str: 'Swapping in this cookie part does not incur a cooldown.',
 			weight: 5,
+			hint: 'Epoch Manipulator',
 		},
 		14: {
 			str: 'Rarer ingredients are more common.',
 			weight: 5,
+			hint: 'Mind Over Matter',
 		},
 		15: {
 			str: 'Your ingredients are not lost on your next ascension. Instead, this cookie part is destroyed.',
 			weight: 5,
+			hint: 'Radiant Appetite',
 		},
 		16: {
 			str: 'CpS <<= 1;',
 			weight: 5,
+			hint: 'Dragon\'s Fortune',
 		},
 		17: {
 			str: 'When this cookie part is combinated, up to two other effects on this part are guarenteed to be on the result.',
 			weight: 5,
+			hint: 'Dragon\'s Curve',
+			combinateEffect(thisPart: Immutable<CookiePartData>, _otherParts: Immutable<CookiePartData[]>, newPart: CookiePartData) {
+				const newEffects = thisPart[2]
+					.filter(v => v[0] === 'aura' && v[1] === 17)
+					.filter(v => {!!newPart[2].find((n)=>{n[0]===v[0]&&n[1]===v[1]})})
+					.map(v => [v[0],v[1],v[2]] as SuffixData);
+				while (newEffects.length > 2) {newEffects.splice(Math.ceil(Math.random()*newEffects.length)-1,1)}
+				newPart[2] = newPart[2].concat(newEffects);
+			}
 		},
 		18: {
 			str: 'When this cookie part is combinated, an aura effect is guarenteed to be on the result.',
 			weight: 5,
+			hint: 'Reality Bending',
+			combinateEffect(_thisPart: Immutable<CookiePartData>, _otherParts: Immutable<CookiePartData[]>, newPart: CookiePartData) {
+				const auras: SuffixData[] = [];
+				if (Game.dragonLevel >= 5) auras.push(['aura', Game.dragonAura as number, 0]);
+				if (Game.dragonLevel >= 27) auras.push(['aura', Game.dragonAura2 as number, 0]);
+				const newEffects = auras
+					.filter(v => {!!newPart[2].find((n)=>{n[0]==='aura'&&n[1]===v[1]})});
+				while (newEffects.length > 1) {newEffects.splice(Math.ceil(Math.random()*newEffects.length)-1,1)}
+				newPart[2] = newPart[2].concat(newEffects);
+			}
 		},
 		19: {
 			str: 'Your shimmering veil is thrice as effective.',
 			weight: 5,
+			hint: 'Dragon Orbs',
 		},
 		20: {
 			str: '+1 cat.',
 			weight: 5,
+			hint: 'Supreme Intellect',
 		},
 		21: {
 			str: 'Exploding a wrinkler also gives cookie crumbs.',
 			weight: 5,
+			hint: 'Dragon Guts',
 		},
 	}
 },
@@ -1068,7 +1110,6 @@ getIcon: function (selected) {
 },
 formatAffix: function (affix, q) {
 	const effect = (typeof affix.effect === 'string') ? AlchTable.effects[affix.effect] : affix;
-	const qualityHint = ('aura' in affix) ? affix.aura : (Beautify((q ?? 0) * 100) + '%')
 	let str = effect.str;
 	if (affix.max) {
 		const number = affix.max * (q ?? 1);
@@ -1077,7 +1118,12 @@ formatAffix: function (affix, q) {
 		if (!q) withUnits = `(0-${withUnits})`;
 		str = str.replace('@', `<span style="color: #aaf; -webkit-background-clip: none;-webkit-text-fill-color: #aaf;">${withUnits}</span>`)
 	}
-	return [str,`<span style="font-size:8pt;color:#bbb"> (${qualityHint})</span>`];
+	return str;
+},
+formatHint: function (affix, q) {
+	const effect = (typeof affix.effect === 'string') ? AlchTable.effects[affix.effect] : affix;
+	const qualityHint = ('hint' in effect) ? effect.hint : (Beautify((q ?? 0) * 100) + '%')
+	return `<span style="font-size:8pt;color:#bbb"> (${qualityHint})</span>`;
 },
 formatIngredient: function (effectTypes, text) {
 	if (!Array.isArray(effectTypes)) effectTypes = [effectTypes];
@@ -1148,30 +1194,20 @@ nextCookiePart: function (partId) {
 	return [partId, baseQuality, suffixes];
 },
 combinate: function (partDatas) {
-	return partDatas[0] as CookiePartData;
-//	if (!partDatas.length) return [];
-//	if (partDatas.length === 1) return partDatas[0];
-//	AlchTable.calculateEffs();
-//	Math.seedrandom(Game.seed+'/'+AlchTable.saveData.totalRecombs);
-//	const combo0 = AlchTable.cookieParts[part0[0]].combo;
-//	const combo1 = AlchTable.cookieParts[part1[0]].combo;
-//	const combos = combo0.concat(combo1);
-//	const combo = [combos.splice(Math.ceil(Math.random()*combos.length)-1,1),combos.splice(Math.ceil(Math.random()*combos.length)-1,1)].flat() as [IngredientID,IngredientID];
-//	const part = AlchTable.comboLookup(...combo);
-//	let dragonsCurve = false;
-//	let realityBending = false;
-//	part0[2].forEach(v => {
-//		const suffix = AlchTable.cookieSuffixes[v[0]][v[1]];
-//		if (suffix && 'aura' in suffix && suffix.aura === 'Dragon\'s Curve') dragonsCurve = true;
-//		if (suffix && 'aura' in suffix && suffix.aura === 'Reality Bending') realityBending = true;
-//	});
-//	const auras: DragonAura[] = [];
-//	if (Game.dragonLevel >= 5) auras.push(Game.dragonAuras[Game.dragonAura].name as DragonAura);
-//	if (Game.dragonLevel >= 27) auras.push(Game.dragonAuras[Game.dragonAura2].name as DragonAura);
-//	if (dragonsCurve) { return
-//	}
-//	const suffixes: SuffixData[] = [];
-//	const suffixPool: [SuffixTypeID, number, number][] = [];
+	if (!partDatas.length) return [];
+	if (partDatas.length === 1) return partDatas[0];
+	AlchTable.calculateEffs();
+	Math.seedrandom(Game.seed+'/'+AlchTable.saveData.totalRecombs);
+	const combos = partDatas.flatMap(v => AlchTable.cookieParts[v[0]].combo);
+	while (combos.length > 2) {combos.splice(Math.ceil(Math.random()*combos.length)-1,1)};
+	const partId = AlchTable.comboLookup(combos[0], combos[1]);
+	if (!partId) return;
+	const newPart: CookiePartData = [partId, Math.random(),[]];
+
+	const suffixes: SuffixData[] = [];
+	const suffixPool: [SuffixTypeID, number, number][] = [];
+	
+	newPart[2].forEach(v => v[2] = Math.min(v[2] + Game.eff('partQualityBonus', 0), 1.5));
 //	str: 'When this cookie part is combinated, up to two other effects on this part are guarenteed to be on the result.',
 //	aura: 'Dragon\'s Curve',
 //	str: 'When this cookie part is combinated, an aura effect is guarenteed to be on the result.',
@@ -1675,7 +1711,7 @@ tooltip: {
 						const part = AlchTable.cookieParts[partId];
 						const ing0 = AlchTable.ingredients[id];
 						const ing1 = AlchTable.ingredients[i];
-						const affixString = AlchTable.formatIngredient([id, i], AlchTable.formatAffix(part.prefix)[0]);
+						const affixString = AlchTable.formatIngredient([id, i], AlchTable.formatAffix(part.prefix));
 						str += /*html*/`
 							<div style="white-space: nowrap;">
 								<div style="font-size:8pt;color:#aaa;display:inline-block;">
@@ -1702,7 +1738,7 @@ tooltip: {
 						return `<span style="font-size:8pt;color:#fe8">&lt;C&gt; </span>`;
 					}
 					Object.entries(AlchTable.cookieSuffixes[id]).forEach(([_suffixId, suffix]) => {
-						const formattedSub = AlchTable.formatIngredient(id,AlchTable.formatAffix(suffix)[0]);
+						const formattedSub = AlchTable.formatIngredient(id,AlchTable.formatAffix(suffix));
 						const rarityString = rarityHint(suffix.weight);
 						str += /*html*/`
 						<div class="alchtableBoxTitle title" style="white-space: nowrap;">
@@ -1743,7 +1779,7 @@ tooltip: {
 							}).forEach(partId => {
 								if (!partId) return;
 								const part = AlchTable.cookieParts[partId as CookiePartID];
-								const affixString = AlchTable.formatIngredient([...part.combo], AlchTable.formatAffix(part.prefix)[0]);
+								const affixString = AlchTable.formatIngredient([...part.combo], AlchTable.formatAffix(part.prefix));
 								str += /*html*/`
 									<div style="white-space: nowrap;">
 										<div style="font-size:8pt;color:#aaa;display:inline-block;">&lt;${partIds[partId as CookiePartID]!}/6&gt;</div>
@@ -1860,7 +1896,7 @@ tooltip: {
 					const partInfo = AlchTable.cookieParts[partData[0]];
 					const combo = AlchTable.getSortedIngredients().filter((v) => partInfo.combo.includes(v));
 					if (combo.length === 1) combo.push(combo[0]!);
-					const formatted = AlchTable.formatAffix(partInfo.prefix, partData[1]);
+					const formatted = [AlchTable.formatAffix(partInfo.prefix, partData[1]), AlchTable.formatHint(partInfo.prefix, partData[1])];
 					let str = /*html*/`
 						<div style="padding:8px 4px;min-width: 350px;">
 							<div class="alchtableThingIcon" style="background-position:${partInfo.icon}; float:left; margin-left:-2px; margin-right: 6px; position: relative;"></div>
@@ -1881,7 +1917,7 @@ tooltip: {
 							const subPartData = partData[2][i]!;
 							const subPartInfo = AlchTable.cookieSuffixes[subPartData[0]][subPartData[1]];
 							if (!subPartInfo) continue;
-							const formattedSub = AlchTable.formatAffix(subPartInfo, subPartData[2]);
+							const formattedSub = [AlchTable.formatAffix(subPartInfo, subPartData[2]), AlchTable.formatHint(subPartInfo, subPartData[2])];
 							str += /*html*/`
 							<div class="alchtableBoxTitle title" style="white-space: nowrap;">
 								${AlchTable.formatIngredient(subPartData[0],formattedSub[0]) + formattedSub[1]}</div>
